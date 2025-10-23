@@ -1,0 +1,519 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-1.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccessLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum NotificationType {
+  NEW_ORDER
+  CANCEL_REQUEST
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Notification {
+  id         Int             @id @default(autoincrement())
+  orderId    Int
+  type       NotificationType
+  message    String          @db.Text
+  isRead     Boolean         @default(false)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  order      CreateOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  @@index([orderId])
+}
+
+model Review {
+  id            Int          @id @default(autoincrement())
+  customerId    Int
+  productId     Int
+  orderId       Int
+  comment       String       @db.Text
+  rating        Int
+  status        ReviewStatus @default(PENDING)
+  likes         Int          @default(0)
+  dislikes      Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  customer      Customers    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  order         CreateOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  userLikes     UserReviewLike[]
+  ReviewMedia   ReviewMedia[]
+  @@index([customerId])
+  @@index([productId])
+  @@index([orderId])
+}
+
+model UserReviewLike {
+  id        Int      @id @default(autoincrement())
+  customerId Int
+  reviewId  Int
+  isLike    Boolean
+  createdAt DateTime @default(now())
+  customer  Customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  @@unique([customerId, reviewId])
+  @@index([customerId])
+  @@index([reviewId])
+}
+
+model ReviewMedia {
+  id           Int     @id @default(autoincrement())
+  reviewId     Int
+  mediaUrl     String  @db.Text
+  cloudinaryId String? @db.VarChar(255)
+  review       Review  @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  @@index([reviewId])
+}
+
+
+model categories {
+  id            Int             @id @default(autoincrement())
+  name          String          @db.VarChar(255) @unique
+  description   String?         @db.Text
+  created_at    DateTime        @default(now()) @db.Timestamp(0)
+  updated_at    DateTime        @default(now()) @db.Timestamp(0)
+  isActive      Boolean?        @default(true)
+  icon          String?         @db.Text
+  slugName      String?         @unique
+  meta_title    String?         @db.VarChar(255)
+  meta_description String?      @db.Text
+  meta_keywords String?         @db.Text
+  Product       Product[]
+  subcategories subcategories[]
+  TopCategory   TopCategory[]
+}
+
+model subcategories {
+  id          Int        @id @default(autoincrement())
+  category_id Int
+  name        String     @db.VarChar(255)
+  created_at  DateTime   @default(now()) @db.Timestamp(0)
+  updated_at  DateTime   @default(now()) @db.Timestamp(0)
+  isActive    Boolean?   @default(true)
+  description String?    @db.Text
+  slugName    String?
+  meta_title       String?    @db.VarChar(255)
+  meta_description String?    @db.Text
+  meta_keywords    String?    @db.Text
+  Product     Product[]
+  categories  categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "subcategories_ibfk_1")
+  @@unique([category_id, name])
+  @@index([category_id], map: "category_id")
+}
+
+model Product {
+  id                  Int                   @id @default(autoincrement())
+  category_id         Int?
+  subcategory_id      Int?
+  name                String
+  price               Int
+  brand               String              @default("Qist Market")
+  short_description   String?
+  long_description    String?               @db.Text
+  stock               Boolean               @default(true)
+  createdAt           DateTime?             @default(now())
+  updatedAt           DateTime?             @default(now())
+  is_approved         Boolean               @default(false)
+  status              Boolean               @default(false)
+  slugName            String?               @unique
+  meta_title          String?               @db.VarChar(255)
+  meta_description    String?               @db.Text
+  meta_keywords       String?               @db.Text
+  isDeal              Boolean               @default(false)
+  categories          categories?           @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  subcategories       subcategories?        @relation(fields: [subcategory_id], references: [id], onDelete: Cascade)
+  ProductImage        ProductImage[]
+  ProductInstallments ProductInstallments[]
+  ProductDeals        ProductDeal[]
+  reviews             Review[]
+  tags                ProductTag[]
+  @@unique([name, category_id, subcategory_id])
+  @@index([category_id], map: "Product_category_id_fkey")
+  @@index([subcategory_id], map: "Product_subcategory_id_fkey")
+}
+
+model Tag {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
+  slugName  String      @unique
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  products  ProductTag[]
+}
+
+model ProductTag {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  tagId     Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  @@unique([productId, tagId])
+  @@index([productId])
+  @@index([tagId])
+}
+
+model ProductImage {
+  id         Int     @id @default(autoincrement())
+  url        String
+  product_id Int
+  alt_text  String?
+  Product    Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  @@index([product_id], map: "ProductImage_product_id_fkey")
+}
+
+model ProductInstallments {
+  id            Int      @id @default(autoincrement())
+  product_id    Int
+  advance       Int
+  isActive      Boolean? @default(true)
+  monthlyAmount Int
+  months        Int
+  totalPrice    Int
+  dealId        Int?
+  Deal          Deal?    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  Product       Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  @@index([product_id], map: "ProductInstallments_product_id_fkey")
+  @@index([dealId], map: "ProductInstallments_dealId_fkey")
+}
+
+model admins {
+  id             Int         @id @default(autoincrement())
+  fullName       String      @db.VarChar(255)
+  email          String      @unique(map: "email") @db.VarChar(255)
+  password       String      @db.VarChar(255)
+  isSuper        Boolean     @default(false)
+  isAdmin        Boolean     @default(true)
+  isActive       Boolean @default(true) 
+  isAccess       AccessLevel @default(LOW)
+  profilePicture String?     @db.Text
+  cloudinaryId   String?     @db.VarChar(255)
+  createdAt      DateTime?   @default(now()) @db.DateTime(0)
+  updatedAt      DateTime?   @updatedAt
+}
+
+model Customers {
+  id          Int                  @id @default(autoincrement())
+  email       String?               @unique
+  password    String?
+  fullName   String?
+  phone       String               @unique
+  alternativePhone String?
+  cnic        String?              @db.VarChar(13) @unique
+  isVerified  Boolean              @default(false)
+  isActive    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  verificationCodes VerificationCode[]
+  passwordResetAttempts PasswordResetAttempt[]
+  orders      CreateOrder[]
+  addresses   Address[]
+  reviews     Review[]
+  userLikes   UserReviewLike[]
+}
+
+model VerificationCode {
+  id          Int        @id @default(autoincrement())
+  customerId  Int?
+  phone       String?
+  customer    Customers? @relation(fields: [customerId], references: [id])
+  code        String
+  isForReset  Boolean
+  expiry      DateTime
+  resendCount Int       @default(0)
+  lastResend  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model PasswordResetAttempt {
+  id          Int       @id @default(autoincrement())
+  customerId  Int
+  customer    Customers @relation(fields: [customerId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model CreateOrder {
+  id              Int         @id @default(autoincrement())
+  customerId      Int?
+  email           String?     @db.VarChar(255)
+  phone           String      @db.VarChar(20)
+  alternativePhone String?
+  fullName        String      @db.VarChar(100)
+  cnic            String      @db.VarChar(13)
+  city            String      @db.VarChar(100)
+  area            String      @db.VarChar(100)
+  address         String      @db.Text
+  orderNotes      String?     @db.Text
+  paymentMethod   String      @db.VarChar(50)
+  productName     String      @db.VarChar(255)
+  totalDealValue  Decimal     @db.Decimal(10, 2)
+  advanceAmount   Decimal     @db.Decimal(10, 2)
+  monthlyAmount   Decimal     @db.Decimal(10, 2)
+  months          Int
+  cancelRequest   String      @default("none")
+  rejectionReason String?     @db.Text
+  createdAt       DateTime?   @default(now()) @db.Timestamp(0)
+  status          OrderStatus @default(Pending)
+  tokenNumber     String      @unique @db.VarChar(255)
+  referralType    String?     @db.VarChar(100)
+  referralDetails String?     @db.Text
+  category_id     Int?
+  subcategory_id  Int?
+  customer        Customers?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  notifications   Notification[]
+  reviews         Review[]
+  @@index([customerId])
+  @@index([email])
+  @@index([phone])
+  @@index([cnic])
+  @@index([tokenNumber])
+  @@index([category_id])
+  @@index([subcategory_id])
+}
+
+enum OrderStatus {
+  Pending
+  Confirmed
+  Shipped
+  Delivered
+  Cancelled
+  Rejected
+}
+
+model Address {
+  id         Int       @id @default(autoincrement())
+  customerId Int
+  address1   String
+  city       String
+  area       String
+  isDefault  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  customer   Customers @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  @@index([customerId])
+}
+
+model Banner {
+  id            Int      @id @default(autoincrement())
+  image_url     String?
+  cloudinary_id String?
+  product_url   String
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Deal {
+  id                Int            @id @default(autoincrement())
+  name              String
+  startDate         DateTime
+  endDate           DateTime
+  isActive          Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  ProductDeals      ProductDeal[]
+  ProductInstallments ProductInstallments[]
+}
+
+model ProductDeal {
+  id               Int                @id @default(autoincrement())
+  dealId           Int
+  productId        Int
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  Deal             Deal               @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  Product          Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  DealInstallments DealInstallments[]
+  @@unique([dealId, productId])
+  @@index([dealId])
+  @@index([productId])
+}
+
+model DealInstallments {
+  id              Int         @id @default(autoincrement())
+  productDealId   Int
+  totalPrice      Float
+  monthlyAmount   Float
+  advance         Float
+  months          Int
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  ProductDeal     ProductDeal @relation(fields: [productDealId], references: [id], onDelete: Cascade)
+  @@index([productDealId])
+}
+
+model TopCategory {
+  id            Int         @id @default(autoincrement())
+  category_id   Int
+  image_url     String
+  cloudinary_id String?
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  categories    categories  @relation(fields: [category_id], references: [id], onDelete: Cascade)
+  @@index([category_id], map: "TopCategory_category_id_fkey")
+}
+
+model Faq {
+  id        Int      @id @default(autoincrement())
+  question  String   @db.Text
+  answer    String   @db.Text
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model About {
+  id        Int      @id @default(autoincrement())
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TermsAndPrivacy {
+  id        Int      @id @default(autoincrement())
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReturnsRefundsPolicy {
+  id        Int      @id @default(autoincrement())
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationProcess {
+  id        Int      @id @default(autoincrement())
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DeliveryPolicy {
+  id        Int      @id @default(autoincrement())
+  content   String   @db.Text
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VisitUs {
+  id        Int          @id @default(autoincrement())
+  title     String       @db.VarChar(255)
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  maps      VisitUsMap[] @relation("VisitUsMaps")
+}
+
+model VisitUsMap {
+  id        Int      @id @default(autoincrement())
+  visitUsId Int
+  map_embed String   @db.Text
+  address   String @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  visitUs   VisitUs  @relation("VisitUsMaps", fields: [visitUsId], references: [id], onDelete: Cascade)
+  @@index([visitUsId])
+}
+
+model QuestionAnswer {
+  id        Int @id @default(autoincrement())
+  question  String @db.Text
+  answer    String @db.Text
+  status    String @default("active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Agreement {
+  id        Int @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  images    AgreementImage[] @relation("AgreementImages")
+}
+
+model AgreementImage {
+  id            Int @id @default(autoincrement())
+  agreementId   Int
+  image_url     String @db.Text
+  cloudinary_id String @db.VarChar(255)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  agreement     Agreement @relation("AgreementImages", fields: [agreementId], references: [id], onDelete: Cascade)
+  @@index([agreementId])
+}
+
+enum PageCategory {
+  ABOUT
+  INFORMATION
+  QUICK_LINKS
+  OTHER
+}
+
+model Page {
+  id              Int               @id @default(autoincrement())
+  title           String            @db.VarChar(255)
+  slug            String            @unique
+  content         String            @db.Text
+  isActive        Boolean           @default(true)
+  metaTitle       String?           @db.VarChar(255)
+  metaDescription String?           @db.Text
+  metaKeywords    String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  category        PageCategory      @default(OTHER) // New field for categorizing pages
+  organizationId  Int?              // Optional foreign key to OrganizationSettings
+  organization    OrganizationSettings? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  @@index([organizationId])
+}
+
+model OrganizationSettings {
+  id            Int                       @id @default(autoincrement())
+  name          String                    @db.VarChar(255)
+  logo_url      String?                   @db.Text
+  cloudinary_id String?                   @db.VarChar(255)
+  email         String?                   @db.VarChar(255)
+  phone         String?                   @db.VarChar(50)
+  address       String?                   @db.Text
+  map_iframe    String?                   @db.Text
+  isActive      Boolean                   @default(true)
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  socialLinks   OrganizationSocialLink[]
+  pages         Page[]
+}
+
+model OrganizationSocialLink {
+  id          Int                    @id @default(autoincrement())
+  settingsId  Int
+  url         String                 @db.Text
+  svg         String                 @db.Text
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+  settings    OrganizationSettings   @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  @@index([settingsId])
+}
