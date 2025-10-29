@@ -1634,4 +1634,85 @@ const bulkSetTags = async (req, res) => {
   }
 };
 
-module.exports = { createProduct, getAllProducts, getProductByName, toggleProductField, updateProduct, getProductPagination, getProductByCategorySlug, getProductByCategoryAndSubSlug, getLatestProducts, getAllProductsPagination, getProductById, getProductSearch, getProductBySubcategorySlugSimple, bulkCreateProducts, bulkUpdateProducts, bulkDeleteProducts, getProductsByIds, bulkSetTags }
+const bulkDuplicateProducts = async (req, res) => {
+  const { ids } = req.body;
+  try {
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ message: "No product IDs provided" });
+    }
+
+    const products = await prisma.product.findMany({
+      where: { id: { in: ids } },
+      include: {
+        ProductImage: true,
+        ProductInstallments: true,
+        tags: { include: { tag: true } },
+      },
+    });
+
+    if (products.length === 0) {
+      return res.status(404).json({ message: "No products found to duplicate" });
+    }
+
+    const duplicated = [];
+
+    await prisma.$transaction(async (tx) => {
+      for (const product of products) {
+        const newName = `${product.name} (Copy)`;
+        const newSlug = `${product.slugName}-copy-${Date.now()}`;
+
+        const newProduct = await tx.product.create({
+          data: {
+            category_id: product.category_id,
+            subcategory_id: product.subcategory_id,
+            name: newName,
+            price: product.price,
+            slugName: newSlug,
+            meta_title: product.meta_title,
+            meta_description: product.meta_description,
+            meta_keywords: product.meta_keywords,
+            status: product.status,
+            brand: product.brand,
+            short_description: product.short_description,
+            long_description: product.long_description,
+            stock: product.stock,
+            is_approved: false,
+            isDeal: product.isDeal,
+            ProductImage: {
+              create: product.ProductImage.map((img) => ({
+                url: img.url,
+                alt_text: newName,
+              })),
+            },
+            ProductInstallments: {
+              create: product.ProductInstallments.map((ins) => ({
+                totalPrice: ins.totalPrice,
+                monthlyAmount: ins.monthlyAmount,
+                advance: ins.advance,
+                months: ins.months,
+                isActive: ins.isActive,
+              })),
+            },
+            tags: {
+              create: product.tags.map((pt) => ({
+                tag: { connect: { id: pt.tagId } },
+              })),
+            },
+          },
+        });
+
+        duplicated.push(newProduct);
+      }
+    });
+
+    res.status(201).json({
+      message: `${duplicated.length} product(s) duplicated successfully`,
+      duplicated,
+    });
+  } catch (error) {
+    console.error("Error duplicating products:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+module.exports = { createProduct, getAllProducts, getProductByName, toggleProductField, updateProduct, getProductPagination, getProductByCategorySlug, getProductByCategoryAndSubSlug, getLatestProducts, getAllProductsPagination, getProductById, getProductSearch, getProductBySubcategorySlugSimple, bulkCreateProducts, bulkUpdateProducts, bulkDeleteProducts, getProductsByIds, bulkSetTags, bulkDuplicateProducts }

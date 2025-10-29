@@ -30,13 +30,47 @@ const rolesRoutes = require('./src/routes/rolesRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const tagRoutes = require('./src/routes/tagRoutes');
 const pageRoutes = require('./src/routes/pageRoutes');
+// const pixelRoutes = require('./src/routes/pixelRoutes');
+const staticPageMeta = require('./src/routes/staticPageMeta');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ---------- CORS: Read URLs from .env ----------
+const rawOrigins = process.env.FRONTEND_URLS;
+
+if (!rawOrigins) {
+  console.error('ERROR: FRONTEND_URLS missing in .env');
+  process.exit(1);
+}
+
+const allowedOrigins = rawOrigins
+  .split(',')
+  .map(url => url.trim())
+  .filter(url => url.length > 0);
+
+if (allowedOrigins.length === 0) {
+  console.error('ERROR: No valid URLs in FRONTEND_URLS');
+  process.exit(1);
+}
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`BLOCKED: ${origin}`);
+      callback(new Error('CORS: Not allowed'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
-app.use(cors());
 
 app.get('/', (req, res) => {
   res.status(200).json({ status: 'success', message: 'Server is running!!' });
@@ -72,6 +106,8 @@ app.use('/api', rolesRoutes);
 app.use('/api', reviewRoutes);
 app.use('/api', tagRoutes);
 app.use('/api', pageRoutes);
+// app.use('/api', pixelRoutes);
+app.use('/api', staticPageMeta);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
