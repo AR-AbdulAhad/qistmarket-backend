@@ -30,7 +30,7 @@ const rolesRoutes = require('./src/routes/rolesRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const tagRoutes = require('./src/routes/tagRoutes');
 const pageRoutes = require('./src/routes/pageRoutes');
-// const pixelRoutes = require('./src/routes/pixelRoutes');
+const pixelRoutes = require('./src/routes/pixelRoutes');
 const staticPageMeta = require('./src/routes/staticPageMeta');
 require('dotenv').config();
 
@@ -106,7 +106,7 @@ app.use('/api', rolesRoutes);
 app.use('/api', reviewRoutes);
 app.use('/api', tagRoutes);
 app.use('/api', pageRoutes);
-// app.use('/api', pixelRoutes);
+app.use('/api', pixelRoutes);
 app.use('/api', staticPageMeta);
 
 app.listen(PORT, () => {
