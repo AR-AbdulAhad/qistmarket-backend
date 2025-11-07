@@ -14,7 +14,9 @@ const {
   getCancelledOrders,
   updateOrderStatus,
   getRejectedOrders,
-  getMyOrders
+  getMyOrders,
+  getConfirmedOrders,
+  getShippedOrders
 } = require('../controllers/orderController');
 
 const router = express.Router();
@@ -102,6 +104,28 @@ router.get(
     query('search').optional().isString().trim(),
   ],
   getRejectedOrders
+);
+
+router.get(
+  '/confirmed-orders',
+  authenticateToken,
+  [
+    query('page').optional().isInt({ min: 1 }).toInt(),
+    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+    query('search').optional().isString().trim(),
+  ],
+  getConfirmedOrders
+);
+
+router.get(
+  '/shipped-orders',
+  authenticateToken,
+  [
+    query('page').optional().isInt({ min: 1 }).toInt(),
+    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+    query('search').optional().isString().trim(),
+  ],
+  getShippedOrders
 );
 
 module.exports = router;

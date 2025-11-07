@@ -284,7 +284,7 @@ const sendOrderWhatsApp = async (phone, subject, orderData) => {
   } else if (subject.startsWith('Order Status Updated to')) {
     templateName = WATI_ORDER_STATUS_UPDATE_TEMPLATE_NAME;
     broadcastName = WATI_ORDER_STATUS_UPDATE_BROADCAST_NAME;
-    orderNoticeMessage = `Great news! Your order is now ${orderData.status}.`;
+    orderNoticeMessage = `${orderData.status === 'Cancelled' ? 'We’re sorry! Your order has been cancelled. If this was a mistake, please contact our support team for assistance.' : `Great news! Your order is now ${orderData.status}.`}`;
     parameters = [
       { name: '1', value: `${orderData.fullName}` },
       { name: '17', value: orderNoticeMessage },
@@ -903,6 +903,108 @@ const getRejectedOrders = async (req, res) => {
   }
 };
 
+const getConfirmedOrders = async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    search = '',
+  } = req.query;
+  const skip = (page - 1) * limit;
+  const take = Number(limit);
+
+  try {
+    const where = { 
+      AND: [
+        { status: 'Confirmed' },
+      ],
+    };
+
+    if (search) {
+      where.AND.push({
+        OR: [
+          { id: isNaN(search) ? undefined : Number(search) },
+          { tokenNumber: { contains: search } },
+          { fullName: { contains: search } },
+          { productName: { contains: search } },
+        ].filter(Boolean),
+      });
+    }
+
+    const orders = await prisma.createOrder.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+    });
+
+    const totalItems = await prisma.createOrder.count({ where });
+
+    res.status(200).json({
+      data: orders,
+      pagination: {
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+        currentPage: Number(page),
+        limit: Number(limit),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch confirmed orders' });
+  }
+};
+
+const getShippedOrders = async (req, res) => {
+  const {
+    page = 1,
+    limit = 10,
+    search = '',
+  } = req.query;
+  const skip = (page - 1) * limit;
+  const take = Number(limit);
+
+  try {
+    const where = { 
+      AND: [
+        { status: 'Shipped' },
+      ],
+    };
+
+    if (search) {
+      where.AND.push({
+        OR: [
+          { id: isNaN(search) ? undefined : Number(search) },
+          { tokenNumber: { contains: search } },
+          { fullName: { contains: search } },
+          { productName: { contains: search } },
+        ].filter(Boolean),
+      });
+    }
+
+    const orders = await prisma.createOrder.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+    });
+
+    const totalItems = await prisma.createOrder.count({ where });
+
+    res.status(200).json({
+      data: orders,
+      pagination: {
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit),
+        currentPage: Number(page),
+        limit: Number(limit),
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch confirmed orders' });
+  }
+};
+
 async function getMyOrders(req, res) {
   const { customerId } = req.params;
   const userId = customerId;
@@ -917,4 +1019,4 @@ async function getMyOrders(req, res) {
   }
 }
 
-module.exports = { createOrders, trackOrder, getOrders, getPendingOrders, getDeliveredOrders, getOrderById, getCancelRequests, approveCancel, getCancelledOrders, updateOrderStatus, getRejectedOrders, requestCancelOrder, getMyOrders };
+module.exports = { createOrders, trackOrder, getOrders, getPendingOrders, getDeliveredOrders, getOrderById, getCancelRequests, approveCancel, getCancelledOrders, updateOrderStatus, getRejectedOrders, requestCancelOrder, getMyOrders, getConfirmedOrders, getShippedOrders };
