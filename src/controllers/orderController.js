@@ -49,154 +49,213 @@ const sendEmail = async (to, subject, orderData) => {
   } else if (subject.includes('Updated to Rejected')) {
     orderNoticeMessage = `Your order has been rejected.`;
   } else {
-    orderNoticeMessage = `Great news! Your order is now ${orderData.status}.`;
+    orderNoticeMessage = `${orderData.status === 'Cancelled' ? 'We’re sorry! Your order has been cancelled. If this was a mistake, please contact our support team for assistance.' : `Great news! Your order is now ${orderData.status}.`}`;
   }
 
+  const getCurrentYear = () => {
+    return new Date().getFullYear();
+  };
+
   const htmlContent = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${subject}</title>
-      <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
-        .container { max-width: 600px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        h1, h5 { color: #333; }
-        p { color: #555; }
-        .order-notice { text-align: center; padding: 20px; background: #e0f7fa; border-radius: 8px; }
-        .order-notice svg { margin-bottom: 10px; }
-        .order-overview-list { list-style: none; padding: 0; margin: 20px 0; }
-        .order-overview-list li { margin-bottom: 10px; font-size: 16px; }
-        .order-overview-list li strong { color: #000; }
-        .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .table th, .table td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
-        .table th { background: #f8f8f8; font-weight: bold; }
-        .table td { color: #555; }
-        .fw-bold { font-weight: bold; }
-        .text-center { text-align: center; }
-        .text-danger { color: #d32f2f; }
-        .btn { display: inline-block; padding: 10px 20px; background: #007bff; color: #fff; text-decoration: none; border-radius: 5px; }
-        @media (max-width: 600px) { .container { padding: 10px; } .table th, .table td { font-size: 14px; } }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="order-notice text-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#007bff" viewBox="0 0 256 256">
-            <path d="M225.86,102.82c-3.77-3.94-7.67-8-9.14-11.57-1.36-3.27-1.44-8.69-1.52-13.94-.15-9.76-.31-20.82-8-28.51s-18.75-7.85-28.51-8c-5.25-.08-10.67-.16-13.94-1.52-3.56-1.47-7.63-5.37-11.57-9.14C146.28,23.51,138.44,16,128,16s-18.27,7.51-25.18,14.14c-3.94,3.77-8,7.67-11.57,9.14C88,40.64,82.56,40.72,77.31,40.8c-9.76.15-20.82.31-28.51,8S41,67.55,40.8,77.31c-.08,5.25-.16,10.67-1.52,13.94-1.47,3.56-5.37,7.63-9.14,11.57C23.51,109.72,16,117.56,16,128s7.51,18.27,14.14,25.18c3.77,3.94,7.67,8,9.14,11.57,1.36,3.27,1.44,8.69,1.52,13.94.15,9.76.31,20.82,8,28.51s18.75,7.85,28.51,8c5.25.08,10.67.16,13.94,1.52,3.56,1.47,7.63,5.37,11.57,9.14C109.72,232.49,117.56,240,128,240s18.27-7.51,25.18-14.14c3.94-3.77,8-7.67,11.57-9.14,3.27-1.36,8.69-1.44,13.94-1.52,9.76-.15,20.82-.31,28.51-8s7.85-18.75,8-28.51c.08-5.25.16-10.67,1.52-13.94,1.47-3.56,5.37-7.63,9.14-11.57C232.49,146.28,240,138.44,240,128S232.49,109.73,225.86,102.82Zm-11.55,39.29c-4.79,5-9.75,10.17-12.38,16.52-2.52,6.1-2.63,13.07-2.73,19.82-.1,7-.21,14.33-3.32,17.43s-10.39,3.22-17.43,3.32c-6.75.1-13.72.21-19.82,2.73-6.35,2.63-11.52,7.59-16.52,12.38S132,224,128,224s-9.15-4.92-14.11-9.69-10.17-9.75-16.52-12.38c-6.1-2.52-13.07-2.63-19.82-2.73-7-.1-14.33-.21-17.43-3.32s-3.22-10.39-3.32-17.43c-.1-6.75-.21-13.72-2.73-19.82-2.63-6.35-7.59-11.52-12.38-16.52S32,132,32,128s4.92-9.15,9.69-14.11,9.75-10.17,12.38-16.52c2.52-6.1,2.63-13.07,2.73-19.82.1-7,.21-14.33,3.32-17.43S70.51,56.9,77.55,56.8c6.75-.1,13.72-.21,19.82-2.73,6.35-2.63,11.52-7.59,16.52-12.38S124,32,128,32s9.15,4.92,14.11,9.69,10.17,9.75,16.52,12.38c6.1,2.52,13.07,2.63,19.82,2.73,7,.1,14.33.21,17.43,3.32s3.22,10.39,3.32,17.43c.1,6.75.21,13.72,2.73,19.82,2.63,6.35,7.59,11.52,12.38,16.52S224,124,224,128,219.08,137.15,214.31,142.11ZM173.66,98.34a8,8,0,0,1,0,11.32l-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35A8,8,0,0,1,173.66,98.34Z" />
-          </svg>
-          <p>${orderNoticeMessage}</p>
-        </div>
-        ${orderData.status === 'Rejected' && orderData.rejectionReason ? `
-          <div class="order-detail-wrap">
-            <h5 class="fw-bold text-danger">Rejection Reason</h5>
-            <p>${orderData.rejectionReason}</p>
-          </div>
-        ` : ''}
-        <ul class="order-overview-list">
-          <li>Order number: <strong>${orderData.id}</strong></li>
-          <li>Tracking Number: <strong>${orderData.tokenNumber || ''}</strong></li>
-          <li>Date: <strong>${new Date(orderData.createdAt).toLocaleDateString()}</strong></li>
-          <li>Status: <strong>${orderData.status || ''}</strong></li>
-          <li>Product: <strong>${orderData.productName || ''}</strong></li>
-          <li>Advance: <strong>Rs. ${Number(orderData.advanceAmount).toLocaleString() || ''}</strong></li>
-          <li>Area: <strong>${orderData.area || ''}</strong></li>
-          ${isFullDetails ? `
-            <li>Payment method: <strong>${orderData.paymentMethod || ''}</strong></li>
-          ` : ''}
-        </ul>
-        ${isFullDetails ? `
-        <div class="order-detail-wrap">
-          <h5 class="fw-bold">Order Details</h5>
-          <table class="table">
-            <thead>
+   <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${subject}</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f9f9fb;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:none;">
+    <div class="wrapper" style="width:100%;background:#f9f9fb;padding:16px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%;">
+        <tr>
+          <td align="center">
+            <table class="container" role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;max-width:620px;margin:0 auto;background:#ffffff;border-radius:10px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.05);border:1px solid #e5e7eb;">
+              <!-- Header -->
               <tr>
-                <th>Product</th>
-                <th>Total Advance</th>
+                <td class="header" style="background:#ffffff;padding:24px 32px 20px;text-align:center;border-bottom:1px solid #e5e7eb;">
+                  <img src="https://www.qistmarket.pk/images/logo/logo.png" alt="Qist Market" class="brand-logo" style="height:44px;margin:0 auto 16px;display:block;max-width:100%;border:0;">
+                </td>
               </tr>
-            </thead>
-            <tbody>
+
+              <!-- Notice -->
               <tr>
-                <td>${orderData.productName || ''}</td>
-                <td><span class="fw-bold">Rs. ${Number(orderData.advanceAmount).toLocaleString() || ''}</span></td>
+                <td class="notice" style="background:#ff3d3d;padding:20px;text-align:center;border-bottom:1px solid #bbf7d0;">
+                  <p style="margin:0;color:#fff;font-size:16px;font-weight:500;line-height:1.4;">${orderNoticeMessage}</p>
+                </td>
               </tr>
-            </tbody>
-            <tfoot>
+
+              <!-- Rejection Reason -->
+              ${orderData.status === 'Rejected' && orderData.rejectionReason ? `
               <tr>
-                <th>Payment method:</th>
-                <td>${orderData.paymentMethod || ''}</td>
-              </tr>
-            </tfoot>
-          </table>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Advance Amount</th>
-                <th>Installment Amount</th>
-                <th>Months Plan</th>
-                <th>Total Deal Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><span class="fw-bold">Rs. ${Number(orderData.advanceAmount).toLocaleString() || ''}</span></td>
-                <td><span class="fw-bold">Rs. ${Number(orderData.monthlyAmount).toLocaleString() || ''}</span></td>
-                <td><span class="fw-bold">Months: ${orderData.months || ''}</span></td>
-                <td><span class="fw-bold">Rs. ${Number(orderData.totalDealValue).toLocaleString() || ''}</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="order-detail-wrap">
-          <h5 class="fw-bold">Billing Address</h5>
-          <table class="table">
-            <tbody>
-              <tr>
-                <td><span class="fw-bold">Customer Name:</span></td>
-                <td><span class="fw-bold">${orderData.fullName}</span></td>
-              </tr>
-              <tr>
-                <td><span class="fw-bold">WhatsApp Number:</span></td>
-                <td><span class="fw-bold">${orderData.phone}</span></td>
-              </tr>
-              ${orderData.alternativePhone ? `
-              <tr>
-                <td><span class="fw-bold">Alternative Number:</span></td>
-                <td><span class="fw-bold">${orderData.alternativePhone}</span></td>
+                <td class="alert" style="background:#fef3f2;border-left:4px solid #f87171;padding:14px 20px;margin:16px 20px;border-radius:0 6px 6px 0;">
+                  <h5 style="margin:0 0 6px;color:#b91c1c;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Rejection Reason</h5>
+                  <p style="margin:0;color:#991b1b;font-size:13px;line-height:1.5;">${orderData.rejectionReason}</p>
+                </td>
               </tr>
               ` : ''}
-              ${orderData.email ? `
+
+              <!-- Body Content -->
               <tr>
-                <td><span class="fw-bold">Email:</span></td>
-                <td><span class="fw-bold">${orderData.email}</span></td>
+                <td class="body" style="padding:28px 32px;">
+
+                  <!-- Order Overview -->
+                  <div class="section" style="margin-bottom:28px;">
+                    <h3 class="section-title" style="margin:0 0 14px;color:#111827;font-size:17px;font-weight:600;border-bottom:1px solid #e5e7eb;padding-bottom:6px;position:relative;">
+                      Order Overview
+                      <span style="content:'';position:absolute;bottom:-1px;left:0;width:40px;height:2px;background:#3b82f6;"></span>
+                    </h3>
+                    <ul class="overview" style="list-style:none;padding:0;margin:0;background:#f9fafb;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
+                      <li style="display:flex;justify-content:space-between;padding:11px 18px;border-bottom:1px solid #e5e7eb;font-size:14.5px;">
+                        <span style="color:#4b5563;font-weight:500;margin-right: 10px;">Order Number </span> <strong style="color:#111827;font-weight:600;">${orderData.id}</strong>
+                      </li>
+                      <li style="display:flex;justify-content:space-between;padding:11px 18px;border-bottom:1px solid #e5e7eb;font-size:14.5px;">
+                        <span style="color:#4b5563;font-weight:500;margin-right: 10px;">Tracking Number </span> <strong style="color:#111827;font-weight:600;">${orderData.tokenNumber || '—'}</strong>
+                      </li>
+                      <li style="display:flex;justify-content:space-between;padding:11px 18px;border-bottom:1px solid #e5e7eb;font-size:14.5px;">
+                        <span style="color:#4b5563;font-weight:500;margin-right: 10px;">Date </span> <strong style="color:#111827;font-weight:600;">${new Date(orderData.createdAt).toLocaleDateString()}</strong>
+                      </li>
+                      <li style="display:flex;justify-content:space-between;padding:11px 18px;border-bottom:1px solid #e5e7eb;font-size:14.5px;">
+                        <span style="color:#4b5563;font-weight:500;margin-right: 10px;">Status </span> <strong style="color:#111827;font-weight:600;">${orderData.status || '—'}</strong>
+                      </li>
+                      <li style="display:flex;justify-content:space-between;padding:11px 18px;border-bottom:1px solid #e5e7eb;font-size:14.5px;">
+                        <span style="color:#4b5563;font-weight:500;margin-right: 10px;">Product </span> <strong style="color:#111827;font-weight:600;">${orderData.productName || '—'}</strong>
+                      </li>
+                      <li style="display:flex;justify-content:space-between;padding:11px 18px;border-bottom:1px solid #e5e7eb;font-size:14.5px;">
+                        <span style="color:#4b5563;font-weight:500;margin-right: 10px;">Advance </span> <strong style="color:#111827;font-weight:600;">Rs. ${Number(orderData.advanceAmount).toLocaleString()}</strong>
+                      </li>
+                      <li style="display:flex;justify-content:space-between;padding:11px 18px;border-bottom:1px solid #e5e7eb;font-size:14.5px;">
+                        <span style="color:#4b5563;font-weight:500;margin-right: 10px;">Area </span> <strong style="color:#111827;font-weight:600;">${orderData.area || '—'}</strong>
+                      </li>
+                      ${isFullDetails ? `
+                      <li style="display:flex;justify-content:space-between;padding:11px 18px;border-bottom:none;font-size:14.5px;">
+                        <span style="color:#4b5563;font-weight:500;margin-right: 10px;">Payment Method </span> <strong style="color:#111827;font-weight:600;">${orderData.paymentMethod || '—'}</strong>
+                      </li>
+                      ` : ''}
+                    </ul>
+                  </div>
+
+                  ${isFullDetails ? `
+                  <!-- Order Details -->
+                  <div class="section" style="margin-bottom:28px;">
+                    <h3 class="section-title" style="margin:0 0 14px;color:#111827;font-size:17px;font-weight:600;border-bottom:1px solid #e5e7eb;padding-bottom:6px;position:relative;">
+                      Order Details
+                      <span style="content:'';position:absolute;bottom:-1px;left:0;width:40px;height:2px;background:#3b82f6;"></span>
+                    </h3>
+                    <table class="table" role="presentation" style="width:100%;margin-bottom:20px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;border-collapse:collapse;">
+                      <thead>
+                        <tr>
+                          <th style="background:#f3f4f6;color:#374151;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.6px;padding:12px 14px;text-align:left;">Product</th>
+                          <th style="background:#f3f4f6;color:#374151;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.6px;padding:12px 14px;text-align:left;">Total Advance</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style="padding:12px 14px;color:#4b5563;font-size:14.5px;border-top:1px solid #e5e7eb;">${orderData.productName || '—'}</td>
+                          <td class="highlight" style="padding:12px 14px;color:#1d4ed8;font-weight:600;font-size:14.5px;border-top:1px solid #e5e7eb;">Rs. ${Number(orderData.advanceAmount).toLocaleString()}</td>
+                        </tr>
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <th style="background:#f9fafb;font-weight:500;text-transform:none;font-size:14px;color:#374151;padding:12px 14px;text-align:left;">Payment Method</th>
+                          <td style="padding:12px 14px;color:#4b5563;font-size:14.5px;">${orderData.paymentMethod || '—'}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+
+                    <table class="table" role="presentation" style="width:100%;margin-bottom:20px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;border-collapse:collapse;">
+                      <thead>
+                        <tr>
+                          <th style="background:#f3f4f6;color:#374151;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.6px;padding:12px 14px;text-align:left;">Advance Amount</th>
+                          <th style="background:#f3f4f6;color:#374151;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.6px;padding:12px 14px;text-align:left;">Installment Amount</th>
+                          <th style="background:#f3f4f6;color:#374151;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.6px;padding:12px 14px;text-align:left;">Months Plan</th>
+                          <th style="background:#f3f4f6;color:#374151;font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:0.6px;padding:12px 14px;text-align:left;">Total Deal Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td class="highlight" style="padding:12px 14px;color:#1d4ed8;font-weight:600;font-size:14.5px;border-top:1px solid #e5e7eb;">Rs. ${Number(orderData.advanceAmount).toLocaleString()}</td>
+                          <td class="highlight" style="padding:12px 14px;color:#1d4ed8;font-weight:600;font-size:14.5px;border-top:1px solid #e5e7eb;">Rs. ${Number(orderData.monthlyAmount).toLocaleString()}</td>
+                          <td class="highlight" style="padding:12px 14px;color:#1d4ed8;font-weight:600;font-size:14.5px;border-top:1px solid #e5e7eb;">Months: ${orderData.months || '—'}</td>
+                          <td class="highlight" style="padding:12px 14px;color:#1d4ed8;font-weight:600;font-size:14.5px;border-top:1px solid #e5e7eb;">Rs. ${Number(orderData.totalDealValue).toLocaleString()}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- Billing Address -->
+                  <div class="section" style="margin-bottom:28px;">
+                    <h3 class="section-title" style="margin:0 0 14px;color:#111827;font-size:17px;font-weight:600;border-bottom:1px solid #e5e7eb;padding-bottom:6px;position:relative;">
+                      Billing Address
+                      <span style="content:'';position:absolute;bottom:-1px;left:0;width:40px;height:2px;background:#3b82f6;"></span>
+                    </h3>
+                    <table class="table address-table" role="presentation" style="width:100%;border:none;border-collapse:collapse;">
+                      <tbody>
+                        <tr>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#6b7280;width:36%;font-weight:500;padding-right:12px;">Customer Name</td>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#111827;font-weight:600;">${orderData.fullName}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#6b7280;width:36%;font-weight:500;padding-right:12px;">WhatsApp Number</td>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#111827;font-weight:600;">${orderData.phone}</td>
+                        </tr>
+                        ${orderData.alternativePhone ? `
+                        <tr>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#6b7280;width:36%;font-weight:500;padding-right:12px;">Alternative Number</td>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#111827;font-weight:600;">${orderData.alternativePhone}</td>
+                        </tr>
+                        ` : ''}
+                        ${orderData.email ? `
+                        <tr>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#6b7280;width:36%;font-weight:500;padding-right:12px;">Email</td>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#111827;font-weight:600;">${orderData.email}</td>
+                        </tr>
+                        ` : ''}
+                        <tr>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#6b7280;width:36%;font-weight:500;padding-right:12px;">Address</td>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#111827;font-weight:600;">${orderData.address || '—'}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#6b7280;width:36%;font-weight:500;padding-right:12px;">City</td>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#111827;font-weight:600;">${orderData.city || '—'}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#6b7280;width:36%;font-weight:500;padding-right:12px;">Area</td>
+                          <td style="padding:8px 0;vertical-align:top;font-size:14.5px;color:#111827;font-weight:600;">${orderData.area || '—'}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  ${orderData.orderNotes ? `
+                  <div class="section" style="margin-bottom:28px;">
+                    <h3 class="section-title" style="margin:0 0 14px;color:#111827;font-size:17px;font-weight:600;border-bottom:1px solid #e5e7eb;padding-bottom:6px;position:relative;">
+                      Order Notes
+                      <span style="content:'';position:absolute;bottom:-1px;left:0;width:40px;height:2px;background:#3b82f6;"></span>
+                    </h3>
+                    <div class="notes" style="background:#fffbeb;padding:14px 18px;border-radius:8px;border-left:4px solid #fbbf24;">
+                      <p style="margin:0;color:#92400e;font-size:13.5px;line-height:1.5;">${orderData.orderNotes}</p>
+                    </div>
+                  </div>
+                  ` : ''}
+                  ` : ''}
+
+                </td>
               </tr>
-              ` : ''}
+
+              <!-- Footer -->
               <tr>
-                <td><span class="fw-bold">Address:</span></td>
-                <td><span class="fw-bold">${orderData.address || ''}</span></td>
+                <td class="footer" style="background:#f9fafb;color:#6b7280;padding:20px;text-align:center;font-size:12.5px;border-top:1px solid #e5e7eb;">
+                  <p style="margin:0;">© ${getCurrentYear()} Qist Market. All rights reserved.</p>
+                  <p style="margin:8px 0 0;">For support, <a href="mailto:info@qistmarket.com" style="color:#3b82f6;font-weight:500;text-decoration:none;">contact us</a>.</p>
+                </td>
               </tr>
-              <tr>
-                <td><span class="fw-bold">City:</span></td>
-                <td><span class="fw-bold">${orderData.city || ''}</span></td>
-              </tr>
-              <tr>
-                <td><span class="fw-bold">Area:</span></td>
-                <td><span class="fw-bold">${orderData.area || ''}</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        ${orderData.orderNotes ? `
-          <div class="order-detail-wrap">
-            <h5 class="fw-bold">Order Notes</h5>
-            <p>${orderData.orderNotes}</p>
-          </div>
-        ` : ''}
-        ` : ''}
-      </div>
-    </body>
-    </html>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </body>
+  </html>
   `;
 
   try {
