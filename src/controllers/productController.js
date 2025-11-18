@@ -609,6 +609,11 @@ const getProductByName = async (req, res) => {
         ProductImage: true,
         ProductInstallments: {
           where: { isActive: true },
+          include: {
+            Deal: {
+              select: { id: true, name: true }
+            }
+          }
         },
         categories: { select: { name: true, slugName: true } },
         subcategories: { select: { name: true, slugName: true } },
@@ -637,6 +642,9 @@ const getProductByName = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    const dealInstallment = product.ProductInstallments.find(inst => inst.dealId !== null);
+    const dealName = dealInstallment?.Deal?.name || null;
+
     const response = {
       ...product,
       category_name: product.categories?.name || null,
@@ -645,6 +653,7 @@ const getProductByName = async (req, res) => {
       subcategory_slug_name: product.subcategories?.slugName || null,
       tags: product.tags.map(pt => pt.tag).filter(tag => tag !== null),
       isDeal: product.isDeal,
+      dealName: dealName,
       approved_reviews_count: product.reviews.length,
       categories: undefined,
       subcategories: undefined,
@@ -820,7 +829,14 @@ const getProductById = async (req, res) => {
       },
       include: {
         ProductImage: true,
-        ProductInstallments: true,
+        ProductInstallments: {
+          where: { isActive: true },
+          include: {
+            Deal: {
+              select: { id: true, name: true }
+            }
+          }
+        },
         categories: { select: { id: true, name: true, slugName: true } },
         subcategories: { select: { id: true, name: true, slugName: true } },
         tags: {
@@ -848,6 +864,9 @@ const getProductById = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    const dealInstallment = product.ProductInstallments.find(inst => inst.dealId !== null);
+    const dealName = dealInstallment?.Deal?.name || null;
+
     const response = {
       ...product,
       category_name: product.categories?.name || null,
@@ -856,6 +875,7 @@ const getProductById = async (req, res) => {
       subcategory_slug_name: product.subcategories?.slugName || null,
       tags: product.tags.map(pt => pt.tag),
       isDeal: product.isDeal,
+      dealName: dealName,
       approved_reviews_count: product.reviews.length,
       categories: undefined,
       subcategories: undefined,
