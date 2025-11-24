@@ -894,10 +894,10 @@ const getAllProducts = async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       where: {
-        status: true, // Only fetch products with status: true
+        status: true,
       },
       orderBy: {
-        createdAt: 'desc', // Sort by creation date, latest first
+        createdAt: 'desc',
       },
       include: {
         ProductImage: true,

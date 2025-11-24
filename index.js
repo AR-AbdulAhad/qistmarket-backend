@@ -32,6 +32,7 @@ const tagRoutes = require('./src/routes/tagRoutes');
 const pageRoutes = require('./src/routes/pageRoutes');
 const pixelRoutes = require('./src/routes/pixelRoutes');
 const staticPageMeta = require('./src/routes/staticPageMeta');
+const sitemapIndexRoutes = require('./src/routes/sitemapIndexRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -108,6 +109,7 @@ app.use('/api', tagRoutes);
 app.use('/api', pageRoutes);
 app.use('/api', pixelRoutes);
 app.use('/api', staticPageMeta);
+app.use('/api', sitemapIndexRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
