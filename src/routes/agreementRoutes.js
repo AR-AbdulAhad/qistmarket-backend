@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../middlewares/authMiddleware');
-const upload = require('../middlewares/uploadMiddleware');
 const fixUploadPath = require('../middlewares/fixUploadPath');
 const {
   getAgreement,
@@ -14,7 +13,6 @@ router.get('/agreement', getAgreement);
 router.post(
   '/agreement',
   authenticateToken,
-  upload.array('images', 10),
   fixUploadPath,
   updateAgreement
 );
