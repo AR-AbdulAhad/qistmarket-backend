@@ -67,6 +67,7 @@ const updateAdminProfile = async (req, res) => {
     if (image) {
       if (admin.profilePicture) {
         const fs = require('fs');
+        const path = require('path');
         const oldPath = path.join(__dirname, '..', admin.profilePicture);
         if (fs.existsSync(oldPath)) {
           fs.unlinkSync(oldPath);
@@ -142,6 +143,7 @@ const deleteProfilePicture = async (req, res) => {
     }
 
     const fs = require('fs');
+    const path = require('path');
     const filePath = path.join(__dirname, '..', admin.profilePicture);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
