@@ -14,6 +14,7 @@ const {
 } = require('../controllers/rolesController');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
+const fixUploadPath = require('../middlewares/fixUploadPath');
 
 router.get('/admins/count/total', authenticateToken, checkSuperAdmin, getTotalAdminsCount);
 router.get('/admins/count/active', authenticateToken, checkSuperAdmin, getActiveAdminsCount);
@@ -47,6 +48,7 @@ router.post(
       }
     }),
   ],
+  fixUploadPath,
   createAdmin
 );
 
@@ -77,6 +79,7 @@ router.put(
       }
     }),
   ],
+  fixUploadPath,
   updateAdmin
 );
 

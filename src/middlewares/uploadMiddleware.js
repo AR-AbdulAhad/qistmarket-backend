@@ -1,7 +1,2 @@
-
-const multer = require('multer');
-const { storage } = require('../Config/cloudinary');
-
-const upload = multer({ storage });
-
+const upload = require('../Config/multer-local');
 module.exports = upload;

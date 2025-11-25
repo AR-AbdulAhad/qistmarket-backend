@@ -1,11 +1,12 @@
 const { createProduct, getAllProducts, getProductByName, toggleProductField, updateProduct, getProductPagination, getProductByCategorySlug, getProductByCategoryAndSubSlug, getLatestProducts, getAllProductsPagination, getProductById, getProductSearch, getProductBySubcategorySlugSimple, bulkCreateProducts, bulkUpdateProducts, bulkDeleteProducts, getProductsByIds, bulkSetTags, bulkDuplicateProducts } = require('../controllers/productController');
 const upload = require('../middlewares/uploadMiddleware');
+const fixUploadPath = require('../middlewares/fixUploadPath');
 const express = require('express');
 const router = express.Router();
 const { query } = require('express-validator');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 
-router.post('/create-product', authenticateToken, upload.array('files'), createProduct);
+router.post('/create-product', authenticateToken, upload.array('files'), fixUploadPath, createProduct);
 router.post('/bulk-create-products', authenticateToken, bulkCreateProducts);
 router.patch('/bulk-update-products', authenticateToken, bulkUpdateProducts);
 router.post('/bulk-delete-products', authenticateToken, bulkDeleteProducts);

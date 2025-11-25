@@ -4,6 +4,7 @@ const { check } = require('express-validator');
 const { getAdminProfile, updateAdminProfile, deleteProfilePicture } = require('../controllers/adminController');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
+const fixUploadPath = require('../middlewares/fixUploadPath');
 router.get('/admin/profile', authenticateToken, getAdminProfile);
 
 router.put(
@@ -26,6 +27,7 @@ router.put(
       }
     }),
   ],
+  fixUploadPath,
   updateAdminProfile
 );
 

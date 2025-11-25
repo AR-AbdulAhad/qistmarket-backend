@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
+const fixUploadPath = require('../middlewares/fixUploadPath');
 const {
   getOrganizationSettings,
   createOrganizationSettings,
@@ -31,6 +32,7 @@ router.post(
       }
     }),
   ],
+  fixUploadPath,
   createOrganizationSettings
 );
 
@@ -50,6 +52,7 @@ router.put(
       }
     }),
   ],
+  fixUploadPath,
   updateOrganizationSettings
 );
 

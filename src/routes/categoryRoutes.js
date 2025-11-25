@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../middlewares/uploadMiddleware');
 const { body, query } = require('express-validator');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const {
@@ -38,7 +37,6 @@ router.get('/plain-categories', getAllPlainCategory);
 router.post(
   '/categories',
   authenticateToken,
-  upload.array('files'),
   [
     body('name').isString().notEmpty().withMessage('Name is required'),
     body('description').isString().optional(),

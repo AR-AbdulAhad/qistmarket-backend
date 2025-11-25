@@ -4,6 +4,7 @@ const router = express.Router();
 const { body, query } = require('express-validator');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
+const fixUploadPath = require('../middlewares/fixUploadPath');
 const {
   getBanners,
   createBanner,
@@ -41,6 +42,7 @@ router.post(
       }
     }),
   ],
+  fixUploadPath,
   createBanner
 );
 
@@ -59,6 +61,7 @@ router.put(
       }
     }),
   ],
+  fixUploadPath,
   updateBanner
 );
 

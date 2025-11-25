@@ -1,6 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
-const { cloudinary } = require('../Config/cloudinary');
 const { validationResult } = require('express-validator');
 
 const prisma = new PrismaClient();
@@ -195,9 +194,15 @@ const updateAdmin = async (req, res) => {
     let cloudinaryId = admin.cloudinaryId;
 
     if (image) {
-      if (admin.cloudinaryId) {
-        await cloudinary.uploader.destroy(admin.cloudinaryId);
+      if (admin.profilePicture) {
+        const fs = require('fs');
+        const path = require('path');
+        const oldPath = path.join(__dirname, '..', admin.profilePicture);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
       }
+
       profilePicture = image.path;
       cloudinaryId = image.filename;
     }
@@ -298,8 +303,13 @@ const deleteAdmin = async (req, res) => {
       return res.status(403).json({ error: 'Cannot delete super admin' });
     }
 
-    if (admin.cloudinaryId) {
-      await cloudinary.uploader.destroy(admin.cloudinaryId);
+    if (admin.profilePicture) {
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.join(__dirname, '..', admin.profilePicture);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
 
     await prisma.admins.delete({ where: { id: Number(id) } });

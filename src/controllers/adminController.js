@@ -2,7 +2,6 @@ const { validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
-const { cloudinary } = require('../Config/cloudinary');
 
 const prisma = new PrismaClient();
 
@@ -66,9 +65,14 @@ const updateAdminProfile = async (req, res) => {
     let cloudinaryId = admin.cloudinaryId;
 
     if (image) {
-      if (admin.cloudinaryId) {
-        await cloudinary.uploader.destroy(admin.cloudinaryId);
+      if (admin.profilePicture) {
+        const fs = require('fs');
+        const oldPath = path.join(__dirname, '..', admin.profilePicture);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
       }
+
       profilePicture = image.path;
       cloudinaryId = image.filename;
     }
@@ -133,11 +137,15 @@ const deleteProfilePicture = async (req, res) => {
       return res.status(404).json({ error: 'Admin not found' });
     }
 
-    if (!admin.profilePicture || !admin.cloudinaryId) {
+    if (!admin.profilePicture) {
       return res.status(400).json({ error: 'No profile picture to delete' });
     }
 
-    await cloudinary.uploader.destroy(admin.cloudinaryId);
+    const fs = require('fs');
+    const filePath = path.join(__dirname, '..', admin.profilePicture);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
 
     const updatedAdmin = await prisma.admins.update({
       where: { id: Number(adminId) },

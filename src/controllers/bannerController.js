@@ -1,7 +1,6 @@
 // controllers/bannerController.js
 const { validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
-const { cloudinary } = require('../Config/cloudinary');
 
 const prisma = new PrismaClient();
 
@@ -92,7 +91,7 @@ const createBanner = async (req, res) => {
     const banner = await prisma.banner.create({
       data: {
         image_url: image.path,
-        cloudinary_id: image.filename,
+        cloudinary_id: null,
         product_url,
         isActive: Boolean(isActive),
       },
@@ -137,12 +136,14 @@ const updateBanner = async (req, res) => {
     let cloudinary_id = banner.cloudinary_id;
 
     if (image) {
-      // Delete old image from Cloudinary if exists
-      if (banner.cloudinary_id) {
-        await cloudinary.uploader.destroy(banner.cloudinary_id);
+      const fs = require('fs');
+      const path = require('path');
+      if (fs.existsSync(path.join(__dirname, '..', banner.image_url))) {
+        fs.unlinkSync(path.join(__dirname, '..', banner.image_url));
       }
+
       image_url = image.path;
-      cloudinary_id = image.filename;
+      cloudinary_id = null;
     }
 
     const updated = await prisma.banner.update({
@@ -172,9 +173,10 @@ const deleteBanner = async (req, res) => {
       return res.status(404).json({ error: 'Banner not found' });
     }
 
-    // Delete image from Cloudinary if exists
-    if (banner.cloudinary_id) {
-      await cloudinary.uploader.destroy(banner.cloudinary_id);
+    const fs = require('fs');
+    const path = require('path');
+    if (banner.image_url && fs.existsSync(path.join(__dirname, '..', banner.image_url))) {
+      fs.unlinkSync(path.join(__dirname, '..', banner.image_url));
     }
 
     await prisma.banner.delete({

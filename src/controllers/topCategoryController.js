@@ -1,6 +1,5 @@
 const { validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
-const { cloudinary } = require('../Config/cloudinary');
 
 const prisma = new PrismaClient();
 
@@ -167,9 +166,15 @@ const updateTopCategory = async (req, res) => {
     let cloudinary_id = topCategory.cloudinary_id;
 
     if (image) {
-      if (topCategory.cloudinary_id) {
-        await cloudinary.uploader.destroy(topCategory.cloudinary_id);
+      if (topCategory.image_url) {
+        const fs = require('fs');
+        const path = require('path');
+        const oldPath = path.join(__dirname, '..', topCategory.image_url);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
       }
+
       image_url = image.path;
       cloudinary_id = image.filename;
     }
@@ -213,8 +218,13 @@ const deleteTopCategory = async (req, res) => {
       return res.status(404).json({ error: 'Top category not found' });
     }
 
-    if (topCategory.cloudinary_id) {
-      await cloudinary.uploader.destroy(topCategory.cloudinary_id);
+    if (topCategory.image_url) {
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.join(__dirname, '..', topCategory.image_url);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
 
     await prisma.topCategory.delete({
@@ -280,7 +290,7 @@ const getActiveTopCategories = async (req, res) => {
                 status: true,
               },
               take: 10,
-              orderBy: { id: 'desc' }, // Sort products by id in descending order to show the latest products first
+              orderBy: { id: 'desc' },
               include: {
                 ProductImage: {
                   take: 1,
@@ -313,7 +323,7 @@ const getActiveTopCategories = async (req, res) => {
         categories_SlugName: tc.categories?.slugName || null,
         subcategory_name: p.subcategories?.name || null,
         subcategory_SlugName: p.subcategories?.slugName || null,
-        advance: p.ProductInstallments[0]?.advance || 0, // Fixed typo from '进' to 'advance'
+        advance: p.ProductInstallments[0]?.advance || 0,
         image_url: p.ProductImage[0]?.url || null,
         isDeal: p.isDeal,
       })) || [],

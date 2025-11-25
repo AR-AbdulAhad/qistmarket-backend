@@ -1,5 +1,4 @@
 const { PrismaClient } = require('@prisma/client');
-const { cloudinary } = require('../Config/cloudinary');
 
 const prisma = new PrismaClient();
 
@@ -34,11 +33,18 @@ const updateAgreement = async (req, res) => {
       const oldImages = await prisma.agreementImage.findMany({
         where: { agreementId: agreement.id },
       });
+
+      const fs = require('fs');
+      const path = require('path');
       for (const img of oldImages) {
-        if (img.cloudinary_id) {
-          await cloudinary.uploader.destroy(img.cloudinary_id);
+        if (img.image_url) {
+          const filePath = path.join(__dirname, '..', img.image_url);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
         }
       }
+
       await prisma.agreementImage.deleteMany({
         where: { agreementId: agreement.id },
       });
@@ -87,8 +93,13 @@ const deleteImage = async (req, res) => {
       return res.status(404).json({ error: 'Image not found' });
     }
 
-    if (image.cloudinary_id) {
-      await cloudinary.uploader.destroy(image.cloudinary_id);
+    const fs = require('fs');
+    const path = require('path');
+    if (image.image_url) {
+      const filePath = path.join(__dirname, '..', image.image_url);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
 
     await prisma.agreementImage.delete({

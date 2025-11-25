@@ -1,0 +1,31 @@
+# Dependencies
+node_modules
+
+# Environment variables
+.env
+.env.local
+
+# Generated files
+/generated/prisma
+
+# Public upload folders (if any)
+/public/orderuploads
+/public/productuploads
+
+# === LOCAL UPLOADS FOLDER (MOST IMPORTANT) ===
+uploads/
+upload/
+src/uploads/
+backend/uploads/
+
+# Optional: Ignore all media files (extra safety)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.svg
+*.pdf
+*.mp4
+*.mov
+*.avi

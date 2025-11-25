@@ -1,6 +1,5 @@
 const { validationResult } = require('express-validator');
-const { PrismaClient } = require('@prisma/client');
-const { cloudinary } = require('../Config/cloudinary');
+const { PrismaClient } = require('@prisma/client')
 
 const prisma = new PrismaClient();
 
@@ -23,7 +22,6 @@ const createOrganizationSettings = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  // Check if settings already exist
   const existingSettings = await prisma.organizationSettings.findFirst();
   if (existingSettings) {
     return res.status(400).json({ error: 'Organization settings already exist. Only one instance is allowed.' });
@@ -111,9 +109,15 @@ const updateOrganizationSettings = async (req, res) => {
     let cloudinary_id = item.cloudinary_id;
 
     if (logo) {
-      if (item.cloudinary_id) {
-        await cloudinary.uploader.destroy(item.cloudinary_id);
+      if (item.logo_url) {
+        const fs = require('fs');
+        const path = require('path');
+        const oldPath = path.join(__dirname, '..', item.logo_url);
+        if (fs.existsSync(oldPath)) {
+          fs.unlinkSync(oldPath);
+        }
       }
+
       logo_url = logo.path;
       cloudinary_id = logo.filename;
     }
@@ -160,8 +164,13 @@ const deleteOrganizationSettings = async (req, res) => {
       return res.status(404).json({ error: 'Organization settings not found' });
     }
 
-    if (item.cloudinary_id) {
-      await cloudinary.uploader.destroy(item.cloudinary_id);
+    if (item.logo_url) {
+      const fs = require('fs');
+      const path = require('path');
+      const filePath = path.join(__dirname, '..', item.logo_url);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
     }
 
     await prisma.organizationSettings.delete({
