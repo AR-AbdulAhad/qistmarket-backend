@@ -1,7 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Create or Update Page
 const upsertPage = async (req, res) => {
   try {
     const { title, content, slug, isActive, metaTitle, metaDescription, metaKeywords, category, organizationId } = req.body;
@@ -51,7 +50,6 @@ const upsertPage = async (req, res) => {
   }
 };
 
-// Get All Pages (for admin)
 const getPages = async (req, res) => {
   try {
     const pages = await prisma.page.findMany({
@@ -67,7 +65,6 @@ const getPages = async (req, res) => {
   }
 };
 
-// Get Single Page by Slug (for public display)
 const getPageBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -83,7 +80,6 @@ const getPageBySlug = async (req, res) => {
   }
 };
 
-// Delete Page
 const deletePage = async (req, res) => {
   try {
     const { id } = req.params;
