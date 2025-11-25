@@ -452,7 +452,7 @@ model AgreementImage {
   id            Int       @id @default(autoincrement())
   agreementId   Int
   image_url     String    @db.Text
-  cloudinary_id String    @db.VarChar(255)
+  cloudinary_id String?    @db.VarChar(255)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   agreement     Agreement @relation("AgreementImages", fields: [agreementId], references: [id], onDelete: Cascade)
