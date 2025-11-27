@@ -371,46 +371,6 @@ model Faq {
   updatedAt DateTime @updatedAt
 }
 
-model About {
-  id        Int      @id @default(autoincrement())
-  content   String   @db.Text
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model TermsAndPrivacy {
-  id        Int      @id @default(autoincrement())
-  content   String   @db.Text
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ReturnsRefundsPolicy {
-  id        Int      @id @default(autoincrement())
-  content   String   @db.Text
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model VerificationProcess {
-  id        Int      @id @default(autoincrement())
-  content   String   @db.Text
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model DeliveryPolicy {
-  id        Int      @id @default(autoincrement())
-  content   String   @db.Text
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
 model VisitUs {
   id        Int          @id @default(autoincrement())
   title     String       @db.VarChar(255)
@@ -528,6 +488,42 @@ model StaticPageMeta {
   updatedAt       DateTime @updatedAt
 
   @@index([slug])
+}
+
+model SiteScript {
+  id        Int      @id @default(autoincrement())
+  location  String   // "header" | "footer"
+  script    String   @db.Text
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([location])
+}
+
+model City {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  slugName  String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  areas     Area[]
+}
+
+model Area {
+  id        Int      @id @default(autoincrement())
+  cityId    Int
+  name      String
+  slugName  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+
+  @@unique([cityId, name])
+  @@index([cityId])
 }
 
 enum AccessLevel {
