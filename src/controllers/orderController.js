@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { PrismaClient } = require('@prisma/client');
 const nodemailer = require('nodemailer');
+const { Parser } = require('json2csv');
 const crypto = require('crypto');
 
 const prisma = new PrismaClient();
@@ -386,19 +387,21 @@ const getOrders = async (req, res) => {
     limit = 10,
     search = '',
     status = 'all',
+    area = '',
   } = req.query;
-  const skip = (page - 1) * limit;
+
+  const skip = (Number(page) - 1) * Number(limit);
   const take = Number(limit);
 
   try {
-    const where = { AND: [] };
+    const where = {
+      AND: [
+        { isArchived: false },
+        { status: { notIn: ['Delivered', 'Cancelled', 'Rejected'] } },
+      ],
+    };
 
-    where.AND.push({
-      status: {
-        notIn: ['Delivered', 'Cancelled', 'Rejected'],
-      },
-    });
-
+    // Search
     if (search) {
       where.AND.push({
         OR: [
@@ -410,18 +413,25 @@ const getOrders = async (req, res) => {
       });
     }
 
+    // Status
     if (status !== 'all') {
       where.AND.push({ status });
     }
 
-    const orders = await prisma.createOrder.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      skip,
-      take,
-    });
+    // Area
+    if (area) {
+      where.AND.push({ area: { contains: area } });
+    }
 
-    const totalItems = await prisma.createOrder.count({ where });
+    const [orders, totalItems] = await Promise.all([
+      prisma.createOrder.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      prisma.createOrder.count({ where }),
+    ]);
 
     res.status(200).json({
       data: orders,
@@ -433,7 +443,7 @@ const getOrders = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error('getOrders error:', error);
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 };
@@ -602,9 +612,14 @@ const getCancelledOrders = async (req, res) => {
 const getOrderById = async (req, res) => {
   const { id } = req.params;
 
+  const orderId = Number(id);
+  if (!id || isNaN(orderId)) {
+    return res.status(400).json({ error: 'Valid order ID is required' });
+  }
+
   try {
     const order = await prisma.createOrder.findUnique({
-      where: { id: Number(id) },
+      where: { id: orderId },
     });
 
     if (!order) {
@@ -613,7 +628,7 @@ const getOrderById = async (req, res) => {
 
     res.status(200).json(order);
   } catch (error) {
-    console.error(error);
+    console.error('getOrderById error:', error);
     res.status(500).json({ error: 'Failed to fetch order details' });
   }
 };
@@ -1081,4 +1096,444 @@ async function getMyOrders(req, res) {
   }
 }
 
-module.exports = { createOrders, trackOrder, getOrders, getPendingOrders, getDeliveredOrders, getOrderById, getCancelRequests, approveCancel, getCancelledOrders, updateOrderStatus, getRejectedOrders, requestCancelOrder, getMyOrders, getConfirmedOrders, getShippedOrders };
+// ───────────────────────────────────────────────────────────────────────
+// 2. GET ARCHIVED ORDERS (isArchived: true)
+// ───────────────────────────────────────────────────────────────────────
+const getArchivedOrders = async (req, res) => {
+  const { page = 1, limit = 10, search = '', area = '' } = req.query;
+  const skip = (Number(page) - 1) * Number(limit);
+  const take = Number(limit);
+
+  try {
+    const where = { isArchived: true };
+
+    if (search) {
+      where.OR = [
+        { id: isNaN(search) ? undefined : Number(search) },
+        { tokenNumber: { contains: search } },
+        { fullName: { contains: search } },
+      ].filter(Boolean);
+    }
+    if (area) where.area = { contains: area };
+
+    const [orders, total] = await Promise.all([
+      prisma.createOrder.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        select: {
+          id: true,
+          tokenNumber: true,
+          fullName: true,
+          phone: true,
+          productName: true,
+          advanceAmount: true,
+          monthlyAmount: true,
+          months: true,
+          totalDealValue: true,
+          status: true,
+          createdAt: true,
+          area: true,
+          isArchived: true,
+        },
+      }),
+      prisma.createOrder.count({ where }),
+    ]);
+
+    res.json({
+      data: orders,
+      pagination: {
+        totalItems: total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: Number(page),
+        limit: Number(limit),
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to fetch archived orders' });
+  }
+};
+
+// ───────────────────────────────────────────────────────────────────────
+// 3. TOGGLE ARCHIVE (SINGLE) – archive or unarchive
+// ───────────────────────────────────────────────────────────────────────
+const toggleArchiveSingle = async (req, res) => {
+  const { id } = req.params;
+  const { archive } = req.body;
+
+  if (!id) return res.status(400).json({ error: 'ID required' });
+
+  const orderId = Number(id);
+  if (isNaN(orderId)) return res.status(400).json({ error: 'Invalid ID' });
+
+  try {
+    const order = await prisma.createOrder.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.isArchived === archive) {
+      return res.status(400).json({ error: archive ? 'Already archived' : 'Not archived' });
+    }
+
+    const updated = await prisma.createOrder.update({
+      where: { id: orderId },
+      data: { isArchived: archive },
+    });
+
+    res.json(updated);
+  } catch (e) {
+    console.error('Toggle error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+// ───────────────────────────────────────────────────────────────────────
+// 4. BULK TOGGLE ARCHIVE
+// ───────────────────────────────────────────────────────────────────────
+const bulkToggleArchive = async (req, res) => {
+  const { orderIds, archive } = req.body;
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    return res.status(400).json({ error: 'orderIds must be a non-empty array' });
+  }
+
+  try {
+    const result = await prisma.createOrder.updateMany({
+      where: {
+        id: { in: orderIds.map(Number) },
+        isArchived: !archive,
+      },
+      data: { isArchived: archive },
+    });
+    res.json({ updatedCount: result.count });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Bulk operation failed' });
+  }
+};
+
+// ───────────────────────────────────────────────────────────────────────
+// 5. EXPORT BY DATE RANGE (with optional archived)
+// ───────────────────────────────────────────────────────────────────────
+const exportByDateRange = async (req, res) => {
+  const {
+    startDate,
+    endDate,
+    includeArchived = 'false',
+    area = '',
+    format = 'csv',
+    statuses = '',
+  } = req.query;
+
+  try {
+    const where = {};
+
+    // Date filter
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(`${startDate}T00:00:00.000Z`);
+      if (endDate) where.createdAt.lte = new Date(`${endDate}T23:59:59.999Z`);
+    }
+
+    // Area filter
+    if (area) {
+      where.area = { contains: area };
+    }
+
+    // Archived filter
+    const incArchived = includeArchived === 'true';
+    if (!incArchived) {
+      where.isArchived = false;
+    }
+
+    // Status filter (NEW)
+    if (statuses) {
+      const statusArray = statuses.split(',').filter(s => s);
+      if (statusArray.length > 0) {
+        where.status = { in: statusArray };
+      }
+    }
+
+    const orders = await prisma.createOrder.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        tokenNumber: true,
+        fullName: true,
+        phone: true,
+        alternativePhone: true,
+        email: true,
+        cnic: true,
+        address: true,
+        city: true,
+        area: true,
+        productName: true,
+        advanceAmount: true,
+        monthlyAmount: true,
+        months: true,
+        totalDealValue: true,
+        paymentMethod: true,
+        status: true,
+        createdAt: true,
+        isArchived: true,
+      },
+    });
+
+    if (orders.length === 0) {
+      return res.status(404).json({ error: 'No orders found' });
+    }
+
+    const fileName = `orders_${startDate || 'all'}_to_${endDate || 'all'}.${format}`;
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      return res.send(JSON.stringify(orders, null, 2));
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+
+    // FULL HEADINGS
+    const fields = [
+      'id', 'tokenNumber', 'fullName', 'phone', 'alternativePhone', 'email', 'cnic',
+      'address', 'city', 'area', 'productName', 'advanceAmount', 'monthlyAmount',
+      'months', 'totalDealValue', 'paymentMethod', 'status', 'createdAt', 'isArchived'
+    ];
+
+    const parser = new Parser({ fields });
+    const csv = parser.parse(orders.map(o => ({
+      ...o,
+      advanceAmount: Number(o.advanceAmount).toLocaleString(),
+      monthlyAmount: Number(o.monthlyAmount).toLocaleString(),
+      totalDealValue: Number(o.totalDealValue).toLocaleString(),
+      createdAt: new Date(o.createdAt).toLocaleString(),
+      isArchived: o.isArchived ? 'Yes' : 'No',
+    })));
+
+    res.send(csv);
+  } catch (e) {
+    console.error('Export error:', e);
+    res.status(500).json({ error: 'Export failed' });
+  }
+};
+
+// ───────────────────────────────────────────────────────────────────────
+// 6. EXPORT SELECTED ORDERS
+// ───────────────────────────────────────────────────────────────────────
+const exportSelectedOrders = async (req, res) => {
+  const { orderIds, format = 'csv' } = req.body;
+
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    return res.status(400).json({ error: 'orderIds required' });
+  }
+
+  try {
+    const orders = await prisma.createOrder.findMany({
+      where: { id: { in: orderIds.map(Number) } },
+      select: {
+        id: true,
+        tokenNumber: true,
+        fullName: true,
+        phone: true,
+        alternativePhone: true,
+        email: true,
+        cnic: true,
+        address: true,
+        city: true,
+        area: true,
+        productName: true,
+        advanceAmount: true,
+        monthlyAmount: true,
+        months: true,
+        totalDealValue: true,
+        paymentMethod: true,
+        status: true,
+        createdAt: true,
+        isArchived: true,
+      },
+    });
+
+    if (orders.length === 0) {
+      return res.status(404).json({ error: 'No orders found' });
+    }
+
+    const fileName = `selected_orders_${new Date().toISOString().slice(0, 10)}.${format}`;
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+
+    if (format === 'json') {
+      res.setHeader('Content-Type', 'application/json');
+      return res.send(JSON.stringify(orders, null, 2));
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+
+    // SAME FIELDS AS DATE RANGE EXPORT
+    const fields = [
+      'id', 'tokenNumber', 'fullName', 'phone', 'alternativePhone', 'email', 'cnic',
+      'address', 'city', 'area', 'productName', 'advanceAmount', 'monthlyAmount',
+      'months', 'totalDealValue', 'paymentMethod', 'status', 'createdAt', 'isArchived'
+    ];
+
+    const parser = new Parser({ fields });
+    const csv = parser.parse(orders.map(o => ({
+      ...o,
+      advanceAmount: Number(o.advanceAmount).toLocaleString(),
+      monthlyAmount: Number(o.monthlyAmount).toLocaleString(),
+      totalDealValue: Number(o.totalDealValue).toLocaleString(),
+      createdAt: new Date(o.createdAt).toLocaleString(),
+      isArchived: o.isArchived ? 'Yes' : 'No',
+    })));
+
+    res.send(csv);
+  } catch (e) {
+    console.error('Export selected error:', e);
+    res.status(500).json({ error: 'Export failed' });
+  }
+};
+
+// ───────────────────────────────────────────────────────────────────────
+// BULK EDIT ORDERS (WITH NOTIFICATIONS USING oldStatuses)
+// ───────────────────────────────────────────────────────────────────────
+const bulkUpdateOrders = async (req, res) => {
+  const { orderIds, updates, oldStatuses = {} } = req.body;
+
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    return res.status(400).json({ error: 'orderIds must be a non-empty array' });
+  }
+
+  if (!updates || typeof updates !== 'object' || Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'At least one update is required' });
+  }
+
+  const allowedFields = [
+    'status', 'area', 'address', 'paymentMethod',
+    'advanceAmount', 'monthlyAmount', 'months', 'totalDealValue', 'rejectionReason'
+  ];
+
+  const perOrderUpdates = {};
+
+  for (const [orderIdStr, orderUpdates] of Object.entries(updates)) {
+    const orderId = Number(orderIdStr);
+    if (isNaN(orderId) || !orderIds.includes(orderId)) continue;
+
+    const data = {};
+
+    for (const field of allowedFields) {
+      if (orderUpdates[field] !== undefined && orderUpdates[field] !== null && orderUpdates[field] !== '') {
+        if (['advanceAmount', 'monthlyAmount', 'months', 'totalDealValue'].includes(field)) {
+          const num = Number(orderUpdates[field]);
+          if (isNaN(num) || num < 0) {
+            return res.status(400).json({ error: `${field} must be non-negative for order ${orderId}` });
+          }
+          data[field] = num;
+        } else if (field === 'rejectionReason') {
+          if (orderUpdates.status === 'Rejected' && !orderUpdates[field].trim()) {
+            return res.status(400).json({ error: 'Rejection reason required for order ' + orderId });
+          }
+          if (orderUpdates.status !== 'Rejected') continue;
+          data[field] = orderUpdates[field].trim();
+        } else {
+          data[field] = orderUpdates[field];
+        }
+      }
+    }
+
+    if (Object.keys(data).length > 0) {
+      perOrderUpdates[orderId] = { data, oldStatus: oldStatuses[orderId] || null };
+    }
+  }
+
+  if (Object.keys(perOrderUpdates).length === 0) {
+    return res.status(400).json({ error: 'No valid updates found' });
+  }
+
+  try {
+    const results = [];
+    const updatedOrders = [];
+
+    for (const [orderId, { data, oldStatus }] of Object.entries(perOrderUpdates)) {
+      const result = await prisma.createOrder.update({
+        where: { id: Number(orderId) },
+        data,
+      });
+      results.push(result);
+
+      // ← Attach oldStatus for notification
+      if (oldStatus && result.status !== oldStatus) {
+        result._oldStatus = oldStatus;
+      }
+      updatedOrders.push(result);
+    }
+
+    // ── SEND NOTIFICATIONS IF STATUS CHANGED ──
+    for (const order of updatedOrders) {
+      if (order._oldStatus && order.status !== order._oldStatus) {
+        const subject = order.status === 'Rejected' 
+          ? 'Order Status Updated to Rejected' 
+          : `Order Status Updated to ${order.status}`;
+        
+        try {
+          await sendOrderWhatsApp(order.phone, subject, order);
+          if (order.email) await sendEmail(order.email, subject, order);
+          console.log(`Notification sent for order ${order.id}: ${order._oldStatus} → ${order.status}`);
+        } catch (err) {
+          console.error(`Notification failed for order ${order.id}:`, err);
+        }
+      }
+    }
+
+    res.json({ 
+      updatedCount: results.length, 
+      updatedOrders: Object.keys(perOrderUpdates).map(Number),
+      notificationsSent: updatedOrders.filter(o => o._oldStatus).length
+    });
+  } catch (e) {
+    console.error('Bulk edit error:', e);
+    res.status(500).json({ error: 'Bulk edit failed' });
+  }
+};
+
+// ───────────────────────────────────────────────────────────────────────
+// GET ORDERS BY IDS (UPDATED: ALL FIELDS FOR BULK EDIT)
+// ───────────────────────────────────────────────────────────────────────
+const getOrdersByIds = async (req, res) => {
+  const { orderIds } = req.body;
+
+  if (!Array.isArray(orderIds) || orderIds.length === 0) {
+    return res.status(400).json({ error: 'orderIds required' });
+  }
+
+  try {
+    const orders = await prisma.createOrder.findMany({
+      where: { id: { in: orderIds.map(Number) } },
+      select: {
+        id: true,
+        fullName: true,
+        productName: true,
+        address: true,
+        area: true,
+        status: true,
+        paymentMethod: true,
+        advanceAmount: true,
+        monthlyAmount: true,
+        months: true,
+        totalDealValue: true,
+        rejectionReason: true,
+      },
+    });
+
+    const orderedResults = orderIds
+      .map(id => orders.find(order => order.id === Number(id)))
+      .filter(Boolean);
+
+    res.json(orderedResults);
+  } catch (e) {
+    console.error('getOrdersByIds error:', e);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+};
+
+module.exports = { createOrders, trackOrder, getOrders, getPendingOrders, getDeliveredOrders, getOrderById, getCancelRequests, approveCancel, getCancelledOrders, updateOrderStatus, getRejectedOrders, requestCancelOrder, getMyOrders, getConfirmedOrders, getShippedOrders, getArchivedOrders, toggleArchiveSingle, bulkToggleArchive, exportByDateRange, exportSelectedOrders, bulkUpdateOrders, getOrdersByIds };

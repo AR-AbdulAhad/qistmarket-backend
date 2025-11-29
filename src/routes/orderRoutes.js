@@ -16,22 +16,40 @@ const {
   getRejectedOrders,
   getMyOrders,
   getConfirmedOrders,
-  getShippedOrders
+  getShippedOrders,
+  getArchivedOrders,
+  toggleArchiveSingle,
+  bulkToggleArchive,
+  exportByDateRange,
+  exportSelectedOrders,
+  bulkUpdateOrders,
+  getOrdersByIds
 } = require('../controllers/orderController');
 
 const router = express.Router();
 
-router.get(
-  '/orders',
-  authenticateToken,
-  [
-    query('page').optional().isInt({ min: 1 }).toInt(),
-    query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
-    query('search').optional().isString().trim(),
-    query('status').optional().isIn(['all', 'Pending', 'Confirmed', 'Shipped']),
-  ],
-  getOrders
-);
+router.get('/orders', authenticateToken, [
+  query('page').optional().isInt({ min: 1 }).toInt(),
+  query('limit').optional().isInt({ min: 1, max: 100 }).toInt(),
+  query('search').optional().trim(),
+  query('status').optional().isIn(['all', 'Pending', 'Confirmed', 'Shipped']),
+  query('area').optional().trim(),
+], getOrders);
+
+router.get('/archived', authenticateToken, getArchivedOrders);
+
+router.put('/:id/toggle-archive', authenticateToken, toggleArchiveSingle);
+
+router.put('/bulk-toggle-archive', authenticateToken, bulkToggleArchive);
+
+router.get('/export-date-range', authenticateToken, exportByDateRange);
+
+router.post('/export-selected', authenticateToken, exportSelectedOrders);
+
+router.post('/get-by-ids', authenticateToken, getOrdersByIds);
+
+router.put('/bulk-edit', authenticateToken, bulkUpdateOrders);
+
 
 router.get(
   '/pending-orders',

@@ -263,6 +263,7 @@ model CreateOrder {
   months           Int
   cancelRequest    String         @default("none")
   rejectionReason  String?        @db.Text
+  isArchived       Boolean        @default(false)
   createdAt        DateTime?      @default(now()) @db.Timestamp(0)
   status           OrderStatus    @default(Pending)
   tokenNumber      String         @unique @db.VarChar(255)
@@ -281,6 +282,9 @@ model CreateOrder {
   @@index([tokenNumber])
   @@index([category_id])
   @@index([subcategory_id])
+  @@index([createdAt])
+  @@index([isArchived])
+  @@index([area])
 }
 
 model Address {
