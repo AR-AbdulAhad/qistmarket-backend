@@ -11,3 +11,5 @@ router.delete('/faqs/:id', authenticateToken, deleteFaq);
 router.get('/faqs/product/:productId', getFaqsForProduct);
 
 module.exports = router;
+
+

@@ -127,6 +127,62 @@ function roundUpToNearest50(num) {
   return Math.ceil(num / 50) * 50;
 }
 
+// function generateInstallments(categoryName, price) {
+//   const category = categoryName.toLowerCase();
+//   let plans = [];
+
+//   if (category === 'mobiles' && price <= 50000) {
+//     plans = [
+//       { months: 3, profit: 0.20, advance: 0.35 },
+//       { months: 6, profit: 0.35, advance: 0.25 },
+//       { months: 9, profit: 0.45, advance: 0.20 },
+//       { months: 12, profit: 0.55, advance: 0.15 },
+//     ];
+//   } else if (price > 50000 && price <= 100000) {
+//     plans = [
+//       { months: 3, profit: 0.20, advance: 0.40 },
+//       { months: 6, profit: 0.35, advance: 0.35 },
+//       { months: 9, profit: 0.45, advance: 0.30 },
+//       { months: 12, profit: 0.55, advance: 0.25 },
+//     ];
+//   } else if (price > 100000) {
+//     plans = [
+//       { months: 3, profit: 0.20, advance: 0.40 },
+//       { months: 6, profit: 0.35, advance: 0.35 },
+//       { months: 9, profit: 0.45, advance: 0.30 },
+//       { months: 12, profit: 0.55, advance: 0.25 },
+//       { months: 24, profit: 0.85, advance: 0.25 },
+//     ];
+//   } else {
+//     throw new Error(`No installment plans available`);
+//   }
+
+//   return plans.map(plan => {
+//     const advanceAmount = roundUpToNearest50(price * plan.advance);
+
+//     const remaining = price - advanceAmount;
+
+//     const profitAmount = roundUpToNearest50(remaining * plan.profit);
+
+//     const totalDealAmount = remaining + profitAmount;
+
+//     const monthlyAmount = roundUpToNearest50(totalDealAmount / plan.months);
+
+//     const totalPrice = advanceAmount + (monthlyAmount * plan.months);
+
+//     return {
+//       advance: advanceAmount,
+//       remaining: remaining,
+//       profit: profitAmount,
+//       totalPrice: totalPrice,
+//       monthlyAmount: monthlyAmount,
+//       months: plan.months,
+//       isActive: true,
+//     };
+//   });
+// }
+
+
 function generateInstallments(categoryName, price) {
   const category = categoryName.toLowerCase();
   let plans = [];

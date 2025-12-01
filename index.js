@@ -35,6 +35,8 @@ const staticPageMeta = require('./src/routes/staticPageMeta');
 const sitemapIndexRoutes = require('./src/routes/sitemapIndexRoutes');
 const siteScripts = require('./src/routes/siteScripts');
 const cityAreasRoutes = require('./src/routes/cityAreasRoutes');
+const featuredProductRoutes = require('./src/routes/featuredProductRoutes');
+const homeSections = require('./src/routes/homeSections');
 require('dotenv').config();
 
 const app = express();
@@ -117,6 +119,8 @@ app.use('/api', staticPageMeta);
 app.use('/api', sitemapIndexRoutes);
 app.use('/api', siteScripts);
 app.use('/api', cityAreasRoutes);
+app.use('/api', featuredProductRoutes);
+app.use('/api', homeSections);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
