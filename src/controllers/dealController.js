@@ -134,6 +134,7 @@ const createDeal = async (req, res) => {
 
 const getAllDeals = async (req, res) => {
   await revertExpiredDeals();
+
   try {
     const deals = await prisma.deal.findMany({
       where: { isActive: true },
@@ -143,7 +144,14 @@ const getAllDeals = async (req, res) => {
           include: {
             Product: {
               include: {
-                ProductImage: { take: 1, orderBy: { id: 'asc' } },
+                ProductImage: {
+                  take: 1,
+                  orderBy: { id: 'asc' },
+                  select: {
+                    url: true,
+                    alt_text: true,
+                  },
+                },
                 categories: { select: { name: true, slugName: true } },
                 subcategories: { select: { name: true, slugName: true } },
               },
@@ -153,6 +161,7 @@ const getAllDeals = async (req, res) => {
         },
       },
     });
+
     const response = deals.map((deal) => ({
       ...deal,
       products: deal.ProductDeals.map((pd) => ({
@@ -164,10 +173,12 @@ const getAllDeals = async (req, res) => {
         subcategory_name: pd.Product?.subcategories?.name || null,
         subcategory_SlugName: pd.Product?.subcategories?.slugName || null,
         image_url: pd.Product?.ProductImage[0]?.url || null,
+        image_alt_text: pd.Product?.ProductImage[0]?.alt_text || null,
         installments: pd.DealInstallments,
       })),
       ProductDeals: undefined,
     }));
+
     res.status(200).json(response);
   } catch (error) {
     console.error('Error fetching deals:', error);

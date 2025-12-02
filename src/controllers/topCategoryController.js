@@ -90,7 +90,7 @@ const createTopCategory = async (req, res) => {
     }
   }
 
-  const { category_id, isActive = true } = formattedData;
+  const { category_id, isActive = true, alt_text } = formattedData;
   const image = req.file;
 
   if (!image) {
@@ -107,6 +107,7 @@ const createTopCategory = async (req, res) => {
         category_id: Number(category_id),
         image_url: image.path,
         cloudinary_id: image.filename,
+        alt_text,
         isActive: Boolean(isActive),
       },
       include: {
@@ -146,7 +147,7 @@ const updateTopCategory = async (req, res) => {
   }
 
   const { id } = req.params;
-  const { category_id } = formattedData;
+  const { category_id, alt_text } = formattedData;
   const image = req.file;
 
   if (!category_id) {
@@ -185,6 +186,7 @@ const updateTopCategory = async (req, res) => {
         category_id: Number(category_id),
         image_url,
         cloudinary_id,
+        alt_text,
       },
       include: {
         categories: {
@@ -295,6 +297,10 @@ const getActiveTopCategories = async (req, res) => {
                 ProductImage: {
                   take: 1,
                   orderBy: { id: 'asc' },
+                  select: {
+                    url: true,
+                    alt_text: true,
+                  },
                 },
                 ProductInstallments: {
                   where: { isActive: true },
@@ -325,6 +331,7 @@ const getActiveTopCategories = async (req, res) => {
         subcategory_SlugName: p.subcategories?.slugName || null,
         advance: p.ProductInstallments[0]?.advance || 0,
         image_url: p.ProductImage[0]?.url || null,
+        image_alt_text: p.ProductImage[0]?.alt_text || null,
         isDeal: p.isDeal,
       })) || [],
       categories: undefined,

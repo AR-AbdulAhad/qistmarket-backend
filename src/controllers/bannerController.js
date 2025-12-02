@@ -80,7 +80,7 @@ const createBanner = async (req, res) => {
     }
   }
 
-  const { product_url, isActive = true } = formattedData;
+  const { product_url, isActive = true, alt_text } = formattedData;
   const image = req.file;
 
   if (!image) {
@@ -93,6 +93,7 @@ const createBanner = async (req, res) => {
         image_url: image.path,
         cloudinary_id: null,
         product_url,
+        alt_text,
         isActive: Boolean(isActive),
       },
     });
@@ -120,7 +121,7 @@ const updateBanner = async (req, res) => {
   }
 
   const { id } = req.params;
-  const { product_url } = formattedData;
+  const { product_url, alt_text } = formattedData;
   const image = req.file;
 
   try {
@@ -152,6 +153,7 @@ const updateBanner = async (req, res) => {
         image_url,
         cloudinary_id,
         product_url,
+        alt_text,
       },
     });
 

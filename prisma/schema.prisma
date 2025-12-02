@@ -307,6 +307,7 @@ model Banner {
   image_url     String?
   cloudinary_id String?
   product_url   String
+  alt_text      String?
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -359,6 +360,7 @@ model TopCategory {
   category_id   Int
   image_url     String
   cloudinary_id String?
+  alt_text      String?
   isActive      Boolean    @default(true)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -554,6 +556,13 @@ model HomeSection {
   updatedAt DateTime @updatedAt
 
   @@index([position])
+}
+
+model SiteConfig {
+  id                     Int      @id @default(autoincrement())
+  whatsappButtonEnabled  Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 enum AccessLevel {

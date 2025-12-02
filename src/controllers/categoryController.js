@@ -108,7 +108,7 @@ const getLimitOnlyTrueCategories = async (req, res) => {
   try {
     const categories = await prisma.categories.findMany({
       where: { isActive: true },
-      take: 10, // Limits the result to 10 categories
+      take: 10,
       include: {
         subcategories: {
           where: { isActive: true },
@@ -246,6 +246,7 @@ const toggleCategoryActive = async (req, res) => {
 
 const getCategoryBySlug = async (req, res) => {
   const { slugName } = req.params;
+
   try {
     const category = await prisma.categories.findUnique({
       where: { slugName },
@@ -259,14 +260,34 @@ const getCategoryBySlug = async (req, res) => {
       },
     });
 
-    if (!category) {
-      return res.status(404).json({ error: 'Category not found' });
+    if (category) {
+      return res.status(200).json({
+        ...category,
+        type: 'category',
+      });
     }
 
-    res.status(200).json(category);
+    const tag = await prisma.tag.findUnique({
+      where: { slugName },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (tag) {
+      return res.status(200).json({
+        ...tag,
+        type: 'tag',
+      });
+    }
+
+    // Step 3: Not found
+    return res.status(404).json({ error: 'Category or Tag not found' });
+
   } catch (error) {
-    console.error('Error fetching category by slug:', error);
-    res.status(500).json({ error: 'Failed to fetch category' });
+    console.error('Error fetching category or tag by slug:', error);
+    res.status(500).json({ error: 'Failed to fetch data' });
   }
 };
 

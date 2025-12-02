@@ -127,7 +127,11 @@ const getPublicFeaturedProducts = async (req, res) => {
             subcategories: { select: { name: true, slugName: true } },
             ProductImage: { 
               take: 1, 
-              select: { url: true } 
+              orderBy: { id: 'asc' },   // Added explicit ordering for consistency
+              select: { 
+                url: true,
+                alt_text: true          // Added alt_text
+              } 
             },
             ProductInstallments: {
               orderBy: { id: 'desc' },
@@ -145,6 +149,7 @@ const getPublicFeaturedProducts = async (req, res) => {
       slug: fp.product.slugName,
       price: fp.product.price,
       image: fp.product.ProductImage[0]?.url || null,
+      image_alt_text: fp.product.ProductImage[0]?.alt_text || null,   // Added alt_text in response
       category_name: fp.product.categories?.name || "Featured",
       category_slug: fp.product.categories?.slugName || "featured",
       subcategory_name: fp.product.subcategories?.name || "",
@@ -154,6 +159,7 @@ const getPublicFeaturedProducts = async (req, res) => {
 
     res.json({ data });
   } catch (error) {
+    console.error("Error fetching featured products:", error);
     res.status(500).json({ error: error.message });
   }
 };

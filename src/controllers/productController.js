@@ -998,7 +998,8 @@ const updateProduct = async (req, res) => {
       meta_title,
       meta_description,
       meta_keywords,
-      slugName
+      slugName,
+      images_alt
     } = req.body;
 
     const currentProduct = await prisma.product.findUnique({
@@ -1045,6 +1046,16 @@ const updateProduct = async (req, res) => {
       where: { id: parseInt(id) },
       data,
     });
+
+    if (images_alt && Array.isArray(images_alt)) {
+      const altUpdates = images_alt.map(img => 
+        prisma.productImage.update({
+          where: { id: img.id },
+          data: { alt_text: (img.alt_text || '').trim().substring(0, 125) }
+        })
+      );
+      await prisma.$transaction(altUpdates);
+    }
 
     if (regenerateInstallments) {
       const categoryName = category_id
@@ -1180,7 +1191,6 @@ const getProductByCategorySlug = async (req, res) => {
     };
 
     if (categorySlug) {
-      // First, try to find a category by slugName or name
       const category = await prisma.categories.findFirst({
         where: {
           OR: [
@@ -1192,10 +1202,8 @@ const getProductByCategorySlug = async (req, res) => {
       });
 
       if (category) {
-        // If category is found, filter by category_id
         where.category_id = category.id;
       } else {
-        // If no category is found, treat categorySlug as a tag slug
         const tag = await prisma.tag.findFirst({
           where: {
             slugName: { equals: categorySlug },
@@ -1421,7 +1429,7 @@ const getLatestProducts = async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       where: {
-        status: true, // Already present, kept for clarity
+        status: true,
       },
       take: 10,
       orderBy: { id: "desc" },
@@ -1429,9 +1437,13 @@ const getLatestProducts = async (req, res) => {
         ProductImage: {
           take: 1,
           orderBy: { id: "asc" },
+          select: {
+            url: true,
+            alt_text: true,   // Added alt_text
+          },
         },
         ProductInstallments: {
-          where: { isActive: true }, // Only include active installments
+          where: { isActive: true },
           orderBy: { id: "desc" },
           take: 1,
         },
@@ -1450,6 +1462,7 @@ const getLatestProducts = async (req, res) => {
       subcategory_SlugName: p.subcategories?.slugName || null,
       advance: p.ProductInstallments[0]?.advance || 0,
       image_url: p.ProductImage[0]?.url || null,
+      image_alt_text: p.ProductImage[0]?.alt_text || null,   // Added alt_text in response
       ProductInstallments: p.ProductInstallments,
       isDeal: p.isDeal,
     }));
