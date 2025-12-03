@@ -18,6 +18,9 @@ upload/
 src/uploads/
 backend/uploads/
 
+config/ga4-key.json
+*.json
+
 # Media files (optional safety)
 *.jpg
 *.jpeg
