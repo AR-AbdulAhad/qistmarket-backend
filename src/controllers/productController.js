@@ -1585,6 +1585,10 @@ const getProductSearch = async (req, res) => {
         ProductImage: {
           take: 1, // Limit to one image per product
           orderBy: { id: "asc" },
+          select: {
+            url: true,
+            alt_text: true,
+          },
         },
         ProductInstallments: {
           where: { isActive: true },
@@ -1605,6 +1609,7 @@ const getProductSearch = async (req, res) => {
       subcategory_SlugName: p.subcategories?.slugName || null,
       advance: p.ProductInstallments[0]?.advance || 0,
       image_url: p.ProductImage[0]?.url || null,
+      image_alt_text: p.ProductImage[0]?.alt_text || null,
       short_description: p.short_description,
       stock: p.stock,
       isDeal: p.isDeal,
@@ -1673,6 +1678,10 @@ const getProductBySubcategorySlugSimple = async (req, res) => {
         ProductImage: {
           take: 1, // Limit to one image per product
           orderBy: { id: "asc" },
+          select: {
+            url: true,
+            alt_text: true,   // Added alt_text
+          },
         },
         ProductInstallments: {
           where: { isActive: true }, // Only include active installments
@@ -1693,6 +1702,7 @@ const getProductBySubcategorySlugSimple = async (req, res) => {
       subcategory_SlugName: p.subcategories?.slugName || null,
       advance: p.ProductInstallments[0]?.advance || 0,
       image_url: p.ProductImage[0]?.url || null,
+      image_alt_text: p.ProductImage[0]?.alt_text || null,
       isDeal: p.isDeal,
     }));
 
