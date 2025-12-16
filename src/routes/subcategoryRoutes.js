@@ -38,10 +38,6 @@ router.post(
     body('category_id').isInt().withMessage('Valid category ID is required'),
     body('description').isString().optional().isLength({ max: 255 }).withMessage('Description must not exceed 255 characters'),
     body('isActive').isBoolean().optional().withMessage('isActive must be a boolean'),
-    body('meta_title').isString().optional().isLength({ max: 60 }).withMessage('Meta title must not exceed 60 characters'),
-    body('meta_description').isString().optional().isLength({ max: 160 }).withMessage('Meta description must not exceed 160 characters'),
-    body('meta_keywords').isString().optional(),
-    body('slugName').isString().optional(),
   ],
   createSubcategory
 );
