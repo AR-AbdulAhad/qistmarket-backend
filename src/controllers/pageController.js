@@ -94,5 +94,76 @@ const deletePage = async (req, res) => {
   }
 };
 
+const updatePage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      content,
+      slug,
+      isActive,
+      metaTitle,
+      metaDescription,
+      metaKeywords,
+      category,
+      organizationId,
+    } = req.body;
 
-module.exports = { upsertPage, getPages, getPageBySlug, deletePage };
+    // Validation
+    if (!title || !content || !slug) {
+      return res.status(400).json({ error: 'Title, content, and slug are required' });
+    }
+
+    const pageId = parseInt(id, 10);
+    if (isNaN(pageId)) {
+      return res.status(400).json({ error: 'Invalid page ID' });
+    }
+
+    // Check if page exists
+    const existingPage = await prisma.page.findUnique({
+      where: { id: pageId },
+    });
+
+    if (!existingPage) {
+      return res.status(404).json({ error: 'Page not found' });
+    }
+
+    // Optional: Prevent slug conflict with other pages
+    if (slug !== existingPage.slug) {
+      const slugExists = await prisma.page.findUnique({ where: { slug } });
+      if (slugExists) {
+        return res.status(400).json({ error: 'Slug already in use by another page' });
+      }
+    }
+
+    const updatedPage = await prisma.page.update({
+      where: { id: pageId },
+      data: {
+        title,
+        content,
+        slug,
+        isActive: isActive ?? existingPage.isActive,
+        metaTitle: metaTitle ?? existingPage.metaTitle,
+        metaDescription: metaDescription ?? existingPage.metaDescription,
+        metaKeywords: metaKeywords ?? existingPage.metaKeywords,
+        category: category ?? existingPage.category,
+        organizationId: organizationId !== undefined ? Number(organizationId) : existingPage.organizationId,
+      },
+      include: {
+        organization: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    res.status(200).json({
+      message: 'Page updated successfully',
+      page: updatedPage,
+    });
+  } catch (error) {
+    console.error('Update page error:', error);
+    res.status(500).json({ error: 'Failed to update page', details: error.message });
+  }
+};
+
+module.exports = { upsertPage, getPages, getPageBySlug, deletePage, updatePage };
