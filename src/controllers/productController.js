@@ -74,14 +74,13 @@ const createProduct = async (req, res) => {
     const defaultMetaDescription = meta_description || 
       (short_description ? short_description.substring(0, 155).trim() + '...' : null);
 
-    // کی ورڈز
     const defaultMetaKeywords = meta_keywords || 
       (tags && tags.length > 0 ? tags.join(', ') : null);
 
-    // short_description کو محفوظ لمبائی تک محدود کرو (ڈیٹا بیس ایریر سے بچاؤ)
+    // یہ لائن سب سے اہم ہے — اسے بالکل یوں لکھیں
     const safeShortDescription = short_description 
-      ? short_description.substring(0, 500).trim() 
-      : '';
+      ? short_description.trim().substring(0, 190) 
+      : null;
 
     // پراڈکٹ کریٹ کرو
     const productCreation = await prisma.product.create({
@@ -96,7 +95,7 @@ const createProduct = async (req, res) => {
         meta_keywords: defaultMetaKeywords,
         status: status ?? true,
         brand: 'Qist Market',
-        short_description: safeShortDescription,   // مکمل محفوظ
+        short_description: safeShortDescription,
         long_description: long_description || '',
         stock: stock ?? true,
         is_approved: is_approved ?? false,
