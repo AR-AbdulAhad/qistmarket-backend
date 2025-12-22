@@ -79,8 +79,8 @@ const createProduct = async (req, res) => {
 
     // یہ لائن سب سے اہم ہے — اسے بالکل یوں لکھیں
     const safeShortDescription = short_description 
-      ? short_description.trim().substring(0, 190) 
-      : null;
+    ? short_description.trim().substring(0, 2000) 
+    : null;
 
     // پراڈکٹ کریٹ کرو
     const productCreation = await prisma.product.create({

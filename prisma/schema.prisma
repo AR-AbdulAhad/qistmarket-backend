@@ -110,7 +110,7 @@ model Product {
   subcategory_id      Int?
   name                String
   brand               String                @default("Qist Market")
-  short_description   String?
+  short_description   String?               @db.Text
   long_description    String?               @db.Text
   stock               Boolean               @default(true)
   createdAt           DateTime?             @default(now())
