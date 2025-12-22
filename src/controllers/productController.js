@@ -67,10 +67,23 @@ const createProduct = async (req, res) => {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
 
+    // میٹا ٹائٹل (60 chars تک)
     const defaultMetaTitle = meta_title || name.substring(0, 60);
-    const defaultMetaDescription = meta_description || (short_description ? short_description.substring(0, 160) : null); // Max 160 chars
-    const defaultMetaKeywords = meta_keywords || (tags && tags.length > 0 ? tags.join(', ') : null);
 
+    // میٹا ڈسکرپشن (155 chars تک + "...")
+    const defaultMetaDescription = meta_description || 
+      (short_description ? short_description.substring(0, 155).trim() + '...' : null);
+
+    // کی ورڈز
+    const defaultMetaKeywords = meta_keywords || 
+      (tags && tags.length > 0 ? tags.join(', ') : null);
+
+    // short_description کو محفوظ لمبائی تک محدود کرو (ڈیٹا بیس ایریر سے بچاؤ)
+    const safeShortDescription = short_description 
+      ? short_description.substring(0, 500).trim() 
+      : '';
+
+    // پراڈکٹ کریٹ کرو
     const productCreation = await prisma.product.create({
       data: {
         category_id: parseInt(category_id),
@@ -83,7 +96,7 @@ const createProduct = async (req, res) => {
         meta_keywords: defaultMetaKeywords,
         status: status ?? true,
         brand: 'Qist Market',
-        short_description: short_description || '',
+        short_description: safeShortDescription,   // مکمل محفوظ
         long_description: long_description || '',
         stock: stock ?? true,
         is_approved: is_approved ?? false,
@@ -127,6 +140,65 @@ function roundUpToNearest50(num) {
   return Math.ceil(num / 50) * 50;
 }
 
+function generateInstallments(categoryName, price) {
+  const category = categoryName.toLowerCase().trim();
+  let plans = [];
+
+  if (category === 'mobiles' && price <= 50000) {
+    plans = [
+      { months: 3, profit: 0.20, advance: 0.35 },
+      { months: 6, profit: 0.35, advance: 0.25 },
+      { months: 9, profit: 0.45, advance: 0.20 },
+      { months: 12, profit: 0.55, advance: 0.15 },
+    ];
+  }
+  else if (price > 50000 && price <= 100000) {
+    plans = [
+      { months: 3, profit: 0.20, advance: 0.40 },
+      { months: 6, profit: 0.35, advance: 0.35 },
+      { months: 9, profit: 0.45, advance: 0.30 },
+      { months: 12, profit: 0.55, advance: 0.25 },
+    ];
+  }
+  else if (price > 100000) {
+    plans = [
+      { months: 3, profit: 0.20, advance: 0.40 },
+      { months: 6, profit: 0.35, advance: 0.35 },
+      { months: 9, profit: 0.45, advance: 0.30 },
+      { months: 12, profit: 0.55, advance: 0.25 },
+      { months: 24, profit: 0.85, advance: 0.25 },
+    ];
+  }
+  else if (price <= 50000) {
+    plans = [
+      { months: 3, profit: 0.22, advance: 0.40 },
+      { months: 6, profit: 0.38, advance: 0.35 },
+      { months: 9, profit: 0.48, advance: 0.30 },
+      { months: 12, profit: 0.60, advance: 0.25 },
+    ];
+  } else {
+    throw new Error(`No installment plans available for category: ${categoryName} and price: ${price}`);
+  }
+
+  return plans.map(plan => {
+    const advanceAmount = roundUpToNearest50(price * plan.advance);
+    const remaining = price - advanceAmount;
+    const profitAmount = roundUpToNearest50(remaining * plan.profit);
+    const totalDealAmount = remaining + profitAmount;
+    const monthlyAmount = roundUpToNearest50(totalDealAmount / plan.months);
+    const totalPrice = advanceAmount + (monthlyAmount * plan.months);
+
+    return {
+      advance: advanceAmount,
+      totalPrice: totalPrice,
+      monthlyAmount: monthlyAmount,
+      months: plan.months,
+      isActive: true,
+    };
+  });
+}
+
+
 // function generateInstallments(categoryName, price) {
 //   const category = categoryName.toLowerCase();
 //   let plans = [];
@@ -154,26 +226,16 @@ function roundUpToNearest50(num) {
 //       { months: 24, profit: 0.85, advance: 0.25 },
 //     ];
 //   } else {
-//     throw new Error(`No installment plans available`);
+//     throw new Error(`No installment plans available for category: ${categoryName} and price: ${price}`);
 //   }
 
 //   return plans.map(plan => {
 //     const advanceAmount = roundUpToNearest50(price * plan.advance);
-
-//     const remaining = price - advanceAmount;
-
-//     const profitAmount = roundUpToNearest50(remaining * plan.profit);
-
-//     const totalDealAmount = remaining + profitAmount;
-
-//     const monthlyAmount = roundUpToNearest50(totalDealAmount / plan.months);
-
-//     const totalPrice = advanceAmount + (monthlyAmount * plan.months);
-
+//     const profitAmount = roundUpToNearest50(price * plan.profit);
+//     const monthlyAmount = roundUpToNearest50((price + profitAmount - advanceAmount) / plan.months);
+//     const totalPrice = roundUpToNearest50(advanceAmount + (monthlyAmount * plan.months));
 //     return {
 //       advance: advanceAmount,
-//       remaining: remaining,
-//       profit: profitAmount,
 //       totalPrice: totalPrice,
 //       monthlyAmount: monthlyAmount,
 //       months: plan.months,
@@ -181,52 +243,6 @@ function roundUpToNearest50(num) {
 //     };
 //   });
 // }
-
-
-function generateInstallments(categoryName, price) {
-  const category = categoryName.toLowerCase();
-  let plans = [];
-
-  if (category === 'mobiles' && price <= 50000) {
-    plans = [
-      { months: 3, profit: 0.20, advance: 0.35 },
-      { months: 6, profit: 0.35, advance: 0.25 },
-      { months: 9, profit: 0.45, advance: 0.20 },
-      { months: 12, profit: 0.55, advance: 0.15 },
-    ];
-  } else if (price > 50000 && price <= 100000) {
-    plans = [
-      { months: 3, profit: 0.20, advance: 0.40 },
-      { months: 6, profit: 0.35, advance: 0.35 },
-      { months: 9, profit: 0.45, advance: 0.30 },
-      { months: 12, profit: 0.55, advance: 0.25 },
-    ];
-  } else if (price > 100000) {
-    plans = [
-      { months: 3, profit: 0.20, advance: 0.40 },
-      { months: 6, profit: 0.35, advance: 0.35 },
-      { months: 9, profit: 0.45, advance: 0.30 },
-      { months: 12, profit: 0.55, advance: 0.25 },
-      { months: 24, profit: 0.85, advance: 0.25 },
-    ];
-  } else {
-    throw new Error(`No installment plans available for category: ${categoryName} and price: ${price}`);
-  }
-
-  return plans.map(plan => {
-    const advanceAmount = roundUpToNearest50(price * plan.advance);
-    const profitAmount = roundUpToNearest50(price * plan.profit);
-    const monthlyAmount = roundUpToNearest50((price + profitAmount - advanceAmount) / plan.months);
-    const totalPrice = roundUpToNearest50(advanceAmount + (monthlyAmount * plan.months));
-    return {
-      advance: advanceAmount,
-      totalPrice: totalPrice,
-      monthlyAmount: monthlyAmount,
-      months: plan.months,
-      isActive: true,
-    };
-  });
-}
 
 const bulkCreateProducts = async (req, res) => {
   const { products } = req.body;
