@@ -39,6 +39,7 @@ const featuredProductRoutes = require('./src/routes/featuredProductRoutes');
 const homeSections = require('./src/routes/homeSections');
 const siteConfig = require('./src/routes/siteConfig');
 const analytics = require('./src/routes/analytics');
+const blogsRoutes = require('./src/routes/blogsRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -125,6 +126,7 @@ app.use('/api', featuredProductRoutes);
 app.use('/api', homeSections);
 app.use('/api', siteConfig);
 app.use('/api', analytics);
+app.use('/api', blogsRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

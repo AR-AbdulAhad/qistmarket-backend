@@ -565,6 +565,32 @@ model SiteConfig {
   updatedAt              DateTime @updatedAt
 }
 
+model Blog {
+  id                    Int       @id @default(autoincrement())
+  title                 String    @db.VarChar(255)
+  shortDescription      String    @db.Text
+  longDescription       String?   @db.Text
+  thumbnailUrl          String?   @db.Text
+  thumbnailAltText      String?   @db.Text
+  thumbnailCloudinaryId String?   @db.VarChar(255)
+  slug                  String?   @unique
+  author                String?   @db.VarChar(255)
+  tags                  Json?     @default("[]")
+  url                   String?   @db.Text
+  type                  BlogType
+  isActive              Boolean   @default(true)
+  metaTitle             String?   @db.VarChar(255)
+  metaDescription       String?   @db.Text
+  metaKeywords          String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+enum BlogType {
+  BLOG
+  PRESS
+}
+
 enum AccessLevel {
   LOW
   MEDIUM
