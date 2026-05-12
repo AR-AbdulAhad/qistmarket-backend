@@ -388,6 +388,7 @@ const getOrders = async (req, res) => {
     search = '',
     status = 'all',
     area = '',
+    excludeTokens = '',
   } = req.query;
 
   const skip = (Number(page) - 1) * Number(limit);
@@ -400,6 +401,14 @@ const getOrders = async (req, res) => {
         { status: { notIn: ['Delivered', 'Cancelled', 'Rejected'] } },
       ],
     };
+
+    // Exclude specific tokens
+    if (excludeTokens) {
+      const tokens = excludeTokens.split(',').map(t => t.trim()).filter(Boolean);
+      if (tokens.length > 0) {
+        where.AND.push({ tokenNumber: { notIn: tokens } });
+      }
+    }
 
     // Search
     if (search) {
@@ -897,17 +906,19 @@ const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status, rejectionReason } = req.body;
 
+  console.log('Update Status Request Body:', req.body);
+  console.log('Order ID:', id);
+
   if (!status) {
     return res.status(400).json({ error: 'Status is required' });
   }
 
   try {
     let data = { status };
-    if (status === 'Rejected') {
-      if (!rejectionReason) {
-        return res.status(400).json({ error: 'Rejection reason is required' });
+    if (status === 'Rejected' || status === 'Cancelled') {
+      if (rejectionReason) {
+        data.rejectionReason = rejectionReason;
       }
-      data.rejectionReason = rejectionReason;
     }
 
     const updatedOrder = await prisma.createOrder.update({
@@ -915,17 +926,25 @@ const updateOrderStatus = async (req, res) => {
       data,
     });
 
-    const subject = status === 'Rejected' ? 'Order Status Updated to Rejected' : `Order Status Updated to ${status}`;
-    await sendOrderWhatsApp(updatedOrder.phone, subject, updatedOrder);
+    console.log('Order status updated successfully in DB:', updatedOrder.id, updatedOrder.status);
 
-    if (updatedOrder.email) {
-      await sendEmail(updatedOrder.email, subject, updatedOrder);
+    const subject = status === 'Rejected' ? 'Order Status Updated to Rejected' : `Order Status Updated to ${status}`;
+    
+    try {
+      if (!req.skipWhatsApp) {
+        await sendOrderWhatsApp(updatedOrder.phone, subject, updatedOrder);
+      }
+      if (updatedOrder.email) {
+        await sendEmail(updatedOrder.email, subject, updatedOrder);
+      }
+    } catch (notifErr) {
+      console.error('Notification failed but status was updated:', notifErr.message);
     }
 
     res.status(200).json(updatedOrder);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to update order status' });
+    console.error('Update Order Status Error:', error);
+    res.status(500).json({ error: 'Failed to update order status', details: error.message });
   }
 };
 
