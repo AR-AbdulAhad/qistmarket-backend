@@ -897,19 +897,17 @@ const updateOrderStatus = async (req, res) => {
   const { id } = req.params;
   const { status, rejectionReason } = req.body;
 
-  console.log('Update Status Request Body:', req.body);
-  console.log('Order ID:', id);
-
   if (!status) {
     return res.status(400).json({ error: 'Status is required' });
   }
 
   try {
     let data = { status };
-    if (status === 'Rejected' || status === 'Cancelled') {
-      if (rejectionReason) {
-        data.rejectionReason = rejectionReason;
+    if (status === 'Rejected') {
+      if (!rejectionReason) {
+        return res.status(400).json({ error: 'Rejection reason is required' });
       }
+      data.rejectionReason = rejectionReason;
     }
 
     const updatedOrder = await prisma.createOrder.update({
@@ -917,23 +915,17 @@ const updateOrderStatus = async (req, res) => {
       data,
     });
 
-    console.log('Order status updated successfully in DB:', updatedOrder.id, updatedOrder.status);
-
     const subject = status === 'Rejected' ? 'Order Status Updated to Rejected' : `Order Status Updated to ${status}`;
-    
-    try {
-      await sendOrderWhatsApp(updatedOrder.phone, subject, updatedOrder);
-      if (updatedOrder.email) {
-        await sendEmail(updatedOrder.email, subject, updatedOrder);
-      }
-    } catch (notifErr) {
-      console.error('Notification failed but status was updated:', notifErr.message);
+    await sendOrderWhatsApp(updatedOrder.phone, subject, updatedOrder);
+
+    if (updatedOrder.email) {
+      await sendEmail(updatedOrder.email, subject, updatedOrder);
     }
 
     res.status(200).json(updatedOrder);
   } catch (error) {
-    console.error('Update Order Status Error:', error);
-    res.status(500).json({ error: 'Failed to update order status', details: error.message });
+    console.error(error);
+    res.status(500).json({ error: 'Failed to update order status' });
   }
 };
 

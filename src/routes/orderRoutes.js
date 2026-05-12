@@ -105,12 +105,7 @@ router.post('/approve-cancel/:orderId', authenticateToken, approveCancel);
 
 router.put(
   '/orders/:id/status',
-  (req, res, next) => {
-    if (req.headers['x-software-backend-secret'] === 'qist-market-software-secret-123') {
-      return next();
-    }
-    return authenticateToken(req, res, next);
-  },
+  authenticateToken,
   [
     body('status').isIn(['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled', 'Rejected']),
     body('rejectionReason').optional().isString().trim(),
