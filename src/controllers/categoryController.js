@@ -49,8 +49,17 @@ const getCategories = async (req, res) => {
     // Count total
     const totalItems = await prisma.categories.count({ where });
 
+    const formatted = categories.map(cat => ({
+      ...cat,
+      description: cat.description || "",
+      icon: cat.icon || "",
+      meta_title: cat.meta_title || "",
+      meta_description: cat.meta_description || "",
+      meta_keywords: cat.meta_keywords || "",
+    }));
+
     res.status(200).json({
-      data: categories,
+      data: formatted,
       pagination: {
         totalItems,
         totalPages: Math.ceil(totalItems / limit),
@@ -161,7 +170,14 @@ const createCategory = async (req, res) => {
         meta_keywords: null,
       },
     });
-    res.status(201).json(newCategory);
+    res.status(201).json({
+      ...newCategory,
+      description: newCategory.description || "",
+      icon: newCategory.icon || "",
+      meta_title: newCategory.meta_title || "",
+      meta_description: newCategory.meta_description || "",
+      meta_keywords: newCategory.meta_keywords || "",
+    });
   } catch (error) {
     console.error('Error creating category:', error);
     if (error.code === 'P2002') {
@@ -202,7 +218,14 @@ const updateCategory = async (req, res) => {
       },
     });
 
-    res.status(200).json(updated);
+    res.status(200).json({
+      ...updated,
+      description: updated.description || "",
+      icon: updated.icon || "",
+      meta_title: updated.meta_title || "",
+      meta_description: updated.meta_description || "",
+      meta_keywords: updated.meta_keywords || "",
+    });
   } catch (error) {
     console.error('Error updating category:', error);
     if (error.code === 'P2002') {
@@ -220,6 +243,11 @@ const deleteCategory = async (req, res) => {
   } catch (error) {
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Category not found" });
+    }
+    if (error.code === "P2003") {
+      return res.status(400).json({ 
+        error: "Cannot delete category due to existing dependencies. Please remove or reassign related records first." 
+      });
     }
     console.error(error);
     res.status(500).json({ error: "Failed to delete category" });
@@ -263,6 +291,10 @@ const getCategoryBySlug = async (req, res) => {
     if (category) {
       return res.status(200).json({
         ...category,
+        meta_title: category.meta_title || "",
+        meta_description: category.meta_description || "",
+        meta_keywords: category.meta_keywords || "",
+        icon: category.icon || "",
         type: 'category',
       });
     }
