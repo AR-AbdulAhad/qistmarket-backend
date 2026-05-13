@@ -204,6 +204,11 @@ const deleteSubcategory = async (req, res) => {
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Subcategory not found" });
     }
+    if (error.code === "P2003") {
+      return res.status(400).json({ 
+        error: "Cannot delete subcategory due to existing connected products. Please remove or reassign products first." 
+      });
+    }
     console.error(error);
     res.status(500).json({ error: "Failed to delete subcategory" });
   }

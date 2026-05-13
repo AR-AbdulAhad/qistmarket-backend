@@ -221,6 +221,11 @@ const deleteCategory = async (req, res) => {
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Category not found" });
     }
+    if (error.code === "P2003") {
+      return res.status(400).json({ 
+        error: "Cannot delete category due to existing dependencies. Please remove or reassign related records first." 
+      });
+    }
     console.error(error);
     res.status(500).json({ error: "Failed to delete category" });
   }
