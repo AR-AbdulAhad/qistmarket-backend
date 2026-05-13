@@ -39,9 +39,9 @@ router.post(
   authenticateToken,
   [
     body('name').isString().notEmpty().withMessage('Name is required'),
-    body('description').isString().optional(),
-    body('isActive').isBoolean().optional().withMessage('isActive must be a boolean'),
-    body('icon').isString().optional(),
+    body('description').optional({ values: 'falsy' }).isString(),
+    body('isActive').optional().isBoolean().withMessage('isActive must be a boolean'),
+    body('icon').optional({ values: 'falsy' }).isString(),
   ],
   createCategory
 );
@@ -51,11 +51,11 @@ router.put(
   authenticateToken,
   [
     body('name').isString().notEmpty().withMessage('Name is required'),
-    body('description').isString().optional(),
-    body('icon').isString().optional(),
-    body('meta_title').isString().optional().isLength({ max: 60 }).withMessage('Meta title must not exceed 60 characters'),
-    body('meta_description').isString().optional().isLength({ max: 160 }).withMessage('Meta description must not exceed 160 characters'),
-    body('meta_keywords').isString().optional(),
+    body('description').optional({ values: 'falsy' }).isString(),
+    body('icon').optional({ values: 'falsy' }).isString(),
+    body('meta_title').optional({ values: 'falsy' }).isString().isLength({ max: 60 }).withMessage('Meta title must not exceed 60 characters'),
+    body('meta_description').optional({ values: 'falsy' }).isString().isLength({ max: 160 }).withMessage('Meta description must not exceed 160 characters'),
+    body('meta_keywords').optional({ values: 'falsy' }).isString(),
   ],
   updateCategory
 );

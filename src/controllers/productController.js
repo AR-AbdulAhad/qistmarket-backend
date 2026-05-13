@@ -1329,23 +1329,24 @@ const getProductByCategoryAndSubSlug = async (req, res) => {
       return res.status(500).json({ error: "Server configuration error: categories or subcategories model not found" });
     }
 
+    let category;
     const where = {
       status: true,
     };
 
     if (categorySlug) {
-      const category = await prisma.categories.findFirst({
+      category = await prisma.categories.findFirst({
         where: {
           OR: [
-            { slugName: { contains: String(categorySlug) } },
-            { name: { contains: String(categorySlug) } },
+            { slugName: String(categorySlug) },
+            { name: String(categorySlug) },
           ],
         },
         select: { id: true, name: true },
       });
 
       if (!category) {
-        console.log(`Category with slugName or name containing "${categorySlug}" not found`);
+        console.log(`Category with slugName or name "${categorySlug}" not found`);
         return res.status(404).json({ error: "Category not found" });
       }
 
@@ -1359,16 +1360,17 @@ const getProductByCategoryAndSubSlug = async (req, res) => {
     if (subcategorySlug) {
       const subcategory = await prisma.subcategories.findFirst({
         where: {
+          category_id: category.id,
           OR: [
-            { slugName: { contains: String(subcategorySlug) } },
-            { name: { contains: String(subcategorySlug) } },
+            { slugName: String(subcategorySlug) },
+            { name: String(subcategorySlug) },
           ],
         },
         select: { id: true, name: true },
       });
 
       if (!subcategory) {
-        console.log(`Subcategory with slugName or name containing "${subcategorySlug}" not found`);
+        console.log(`Subcategory with slugName or name "${subcategorySlug}" in category ${category.name} not found`);
         return res.status(404).json({ error: "Subcategory not found" });
       }
 
