@@ -57,7 +57,12 @@ const getSubcategories = async (req, res) => {
 
     const formatted = subcategories.map((sc) => ({
       ...sc,
-      category_name: sc.categories?.name || null,
+      category_id: sc.category_id || "",
+      category_name: sc.categories?.name || "",
+      description: sc.description || "",
+      meta_title: sc.meta_title || "",
+      meta_description: sc.meta_description || "",
+      meta_keywords: sc.meta_keywords || "",
       categories: undefined,
     }));
 
@@ -132,7 +137,14 @@ const createSubcategory = async (req, res) => {
       },
     });
 
-    res.status(201).json(subcategory);
+    res.status(201).json({
+      ...subcategory,
+      description: subcategory.description || "",
+      meta_title: subcategory.meta_title || "",
+      meta_description: subcategory.meta_description || "",
+      meta_keywords: subcategory.meta_keywords || "",
+      slugName: subcategory.slugName || "",
+    });
   } catch (error) {
     console.error('Error creating subcategory:', error);
     if (error.code === 'P2002') {
@@ -183,7 +195,15 @@ const updateSubcategory = async (req, res) => {
       },
     });
 
-    res.status(200).json(updated);
+    res.status(200).json({
+      ...updated,
+      description: updated.description || "",
+      meta_title: updated.meta_title || "",
+      meta_description: updated.meta_description || "",
+      meta_keywords: updated.meta_keywords || "",
+      slugName: updated.slugName || "",
+      category_id: updated.category_id || "",
+    });
   } catch (error) {
     console.error('Error updating subcategory:', error);
     if (error.code === 'P2002') {
@@ -203,6 +223,11 @@ const deleteSubcategory = async (req, res) => {
   } catch (error) {
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Subcategory not found" });
+    }
+    if (error.code === "P2003") {
+      return res.status(400).json({ 
+        error: "Cannot delete subcategory due to existing connected products. Please remove or reassign products first." 
+      });
     }
     console.error(error);
     res.status(500).json({ error: "Failed to delete subcategory" });
@@ -225,7 +250,15 @@ const toggleSubcategoryActive = async (req, res) => {
       data: { isActive: !subcategory.isActive },
     });
 
-    res.status(200).json(updated);
+    res.status(200).json({
+      ...updated,
+      description: updated.description || "",
+      meta_title: updated.meta_title || "",
+      meta_description: updated.meta_description || "",
+      meta_keywords: updated.meta_keywords || "",
+      slugName: updated.slugName || "",
+      category_id: updated.category_id || "",
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to toggle subcategory status" });
@@ -278,10 +311,10 @@ const getSubcategoryBySlug = async (req, res) => {
     res.status(200).json({
       id: subcategory.id,
       name: subcategory.name,
-      meta_title: subcategory.meta_title,
-      meta_description: subcategory.meta_description,
-      meta_keywords: subcategory.meta_keywords,
-      category_name: subcategory.categories?.name || null,
+      meta_title: subcategory.meta_title || "",
+      meta_description: subcategory.meta_description || "",
+      meta_keywords: subcategory.meta_keywords || "",
+      category_name: subcategory.categories?.name || "",
     });
   } catch (error) {
     console.error('Error fetching subcategory by slug:', error);
